@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/USER/Documents/projects/nfvcb/convex/**)",
+      "Read(//c/Users/USER/Documents/projects/nfvcb/**)",
+      "Bash(cat /c/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-projects-nfvcb-website-admin/dca5f3c0-356c-4409-90f0-50b1f39ba10a/tasks/bwzhnwipr.output)",
+      "Read(//c/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-projects-nfvcb-website-admin/dca5f3c0-356c-4409-90f0-50b1f39ba10a/tasks/**)",
+      "Bash(find /c/Users/USER/Documents/projects -type d -name \"admin\" -o -name \"dashboard\" 2>/dev/null | head -10)",
+      "Read(//c/Users/USER/Documents/projects/**)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\USER\\Documents\\projects\\nfvcb\\convex"
+    ]
+  }
+}

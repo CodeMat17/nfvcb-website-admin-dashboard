@@ -1,7 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "fastidious-flamingo-212.convex.cloud",
+      },
+      {
+        protocol: "https",
+        hostname: "fastidious-flamingo-212.convex.site",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

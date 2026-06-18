@@ -1,26 +1,167 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-nunito);
+  --font-mono: var(--font-nunito);
+  --font-heading: var(--font-nunito);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-nfvcb-green: #009f3b;
+  --color-nfvcb-dark: #001506;
+  --color-nfvcb-gold: #fea600;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --background: #ffffff;
+  --foreground: #001506;
+  --card: #f8fdf9;
+  --card-foreground: #001506;
+  --popover: #ffffff;
+  --popover-foreground: #001506;
+  --primary: #009f3b;
+  --primary-foreground: #ffffff;
+  --secondary: #e8f5ee;
+  --secondary-foreground: #001506;
+  --muted: #f0f9f3;
+  --muted-foreground: #4a7a5a;
+  --accent: #fea600;
+  --accent-foreground: #001506;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #d0eada;
+  --input: #d0eada;
+  --ring: #009f3b;
+  --chart-1: #009f3b;
+  --chart-2: #fea600;
+  --chart-3: #006d28;
+  --chart-4: #ff8c00;
+  --chart-5: #004d1a;
+  --radius: 0.75rem;
+  --sidebar: #f0f9f3;
+  --sidebar-foreground: #001506;
+  --sidebar-primary: #009f3b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8f5ee;
+  --sidebar-accent-foreground: #001506;
+  --sidebar-border: #d0eada;
+  --sidebar-ring: #009f3b;
+}
+
+.dark {
+  --background: #001506;
+  --foreground: #e8f5ee;
+  --card: #002b0e;
+  --card-foreground: #e8f5ee;
+  --popover: #002b0e;
+  --popover-foreground: #e8f5ee;
+  --primary: #009f3b;
+  --primary-foreground: #ffffff;
+  --secondary: #003d14;
+  --secondary-foreground: #e8f5ee;
+  --muted: #003014;
+  --muted-foreground: #7ec89a;
+  --accent: #fea600;
+  --accent-foreground: #001506;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: #003d14;
+  --input: #003d14;
+  --ring: #009f3b;
+  --chart-1: #009f3b;
+  --chart-2: #fea600;
+  --chart-3: #00d44f;
+  --chart-4: #ffb733;
+  --chart-5: #004d1a;
+  --sidebar: #002b0e;
+  --sidebar-foreground: #e8f5ee;
+  --sidebar-primary: #009f3b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #003d14;
+  --sidebar-accent-foreground: #e8f5ee;
+  --sidebar-border: #003d14;
+  --sidebar-ring: #009f3b;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .ProseMirror {
+    outline: none;
+  }
+  .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply text-muted-foreground;
+    pointer-events: none;
+    float: left;
+    height: 0;
+  }
+  .ProseMirror h2 { @apply text-xl font-bold mt-4 mb-2; }
+  .ProseMirror h3 { @apply text-lg font-semibold mt-3 mb-1; }
+  .ProseMirror h4 { @apply text-base font-semibold mt-2 mb-1; }
+  .ProseMirror p  { @apply my-1 leading-relaxed; }
+  .ProseMirror ul { @apply list-disc pl-5 my-2 space-y-0.5; }
+  .ProseMirror ol { @apply list-decimal pl-5 my-2 space-y-0.5; }
+  .ProseMirror li { @apply leading-relaxed; }
+  .ProseMirror blockquote {
+    @apply border-l-4 border-nfvcb-green pl-4 italic text-muted-foreground my-3;
+  }
+  .ProseMirror pre {
+    @apply bg-muted rounded-md px-4 py-3 font-mono text-sm my-3 overflow-x-auto;
+  }
+  .ProseMirror code { @apply bg-muted rounded px-1 py-0.5 font-mono text-sm; }
+  .ProseMirror a  { @apply text-nfvcb-green underline underline-offset-2; }
+  .ProseMirror img {
+    @apply max-w-full rounded-md my-3 border;
+  }
+  .ProseMirror hr { @apply border-border my-4; }
 }
+
