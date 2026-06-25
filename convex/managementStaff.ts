@@ -30,7 +30,7 @@ export const list = query({
     const staff = await ctx.db
       .query("managementStaff")
       .withIndex("by_order")
-      .order("asc")
+      .order("desc")
       .take(500);
     return await Promise.all(
       staff.map(async (s) => ({
