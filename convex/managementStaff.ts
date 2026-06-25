@@ -35,7 +35,7 @@ export const list = query({
     return await Promise.all(
       staff.map(async (s) => ({
         ...s,
-        imageUrl: await ctx.storage.getUrl(s.imageId),
+        imageUrl: s.imageId ? await ctx.storage.getUrl(s.imageId) : null,
       }))
     );
   },
@@ -46,7 +46,7 @@ export const getById = query({
   handler: async (ctx, args) => {
     const staff = await ctx.db.get(args.id);
     if (!staff) return null;
-    return { ...staff, imageUrl: await ctx.storage.getUrl(staff.imageId) };
+    return { ...staff, imageUrl: staff.imageId ? await ctx.storage.getUrl(staff.imageId) : null };
   },
 });
 
@@ -54,7 +54,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     designation: v.string(),
-    imageId: v.id("_storage"),
+    imageId: v.optional(v.id("_storage")),
     order: v.number(),
   },
   handler: async (ctx, args) => {
@@ -64,10 +64,12 @@ export const create = mutation({
     const name = sanitizeField(args.name, MAX_NAME, "Name");
     const designation = sanitizeField(args.designation, MAX_DESIGNATION, "Designation");
 
-    const meta = await ctx.db.system.get(args.imageId);
-    if (!meta) throw new Error("Image not found in storage.");
-    if (meta.size > MAX_IMAGE_BYTES)
-      throw new Error("Image must be 300 KB or smaller.");
+    if (args.imageId) {
+      const meta = await ctx.db.system.get(args.imageId);
+      if (!meta) throw new Error("Image not found in storage.");
+      if (meta.size > MAX_IMAGE_BYTES)
+        throw new Error("Image must be 300 KB or smaller.");
+    }
 
     return await ctx.db.insert("managementStaff", {
       name,
@@ -108,7 +110,7 @@ export const update = mutation({
       if (!meta) throw new Error("Image not found in storage.");
       if (meta.size > MAX_IMAGE_BYTES)
         throw new Error("Image must be 300 KB or smaller.");
-      await ctx.storage.delete(existing.imageId);
+      if (existing.imageId) await ctx.storage.delete(existing.imageId);
       patch.imageId = fields.imageId;
     }
 
@@ -124,7 +126,7 @@ export const remove = mutation({
 
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Staff member not found.");
-    await ctx.storage.delete(existing.imageId);
+    if (existing.imageId) await ctx.storage.delete(existing.imageId);
     await ctx.db.delete(args.id);
   },
 });

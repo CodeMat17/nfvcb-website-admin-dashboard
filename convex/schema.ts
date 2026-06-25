@@ -26,7 +26,7 @@ export default defineSchema({
   managementStaff: defineTable({
     name: v.string(),
     designation: v.string(),
-    imageId: v.id("_storage"),
+    imageId: v.optional(v.id("_storage")),
     order: v.number(),
   }).index("by_order", ["order"]),
 

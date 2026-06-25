@@ -31,7 +31,7 @@ type StaffDoc = {
   _id: Id<"managementStaff">;
   name: string;
   designation: string;
-  imageId: Id<"_storage">;
+  imageId?: Id<"_storage">;
   imageUrl: string | null;
   order: number;
 };
@@ -143,7 +143,6 @@ export default function ManagementStaffPage() {
     if (!sanitizeText(form.name, MAX_NAME)) return "Name is required.";
     if (!sanitizeText(form.designation, MAX_DESIGNATION))
       return "Designation is required.";
-    if (!editingId && !imageFile) return "A photo is required.";
     return null;
   }
 
@@ -187,19 +186,23 @@ export default function ManagementStaffPage() {
         await updateStaff(payload);
         setSuccess("Staff member updated.");
       } else {
-        const uploadUrl = await generateUploadUrl();
-        const res = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": imageFile!.type },
-          body: imageFile!,
-        });
-        if (!res.ok) throw new Error("Image upload failed. Please try again.");
-        const { storageId } = await res.json();
+        let storageId: Id<"_storage"> | undefined;
+        if (imageFile) {
+          const uploadUrl = await generateUploadUrl();
+          const res = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": imageFile.type },
+            body: imageFile,
+          });
+          if (!res.ok) throw new Error("Image upload failed. Please try again.");
+          const data = await res.json();
+          storageId = data.storageId as Id<"_storage">;
+        }
 
         await createStaff({
           name,
           designation,
-          imageId: storageId as Id<"_storage">,
+          imageId: storageId,
           order: Date.now(),
         });
         setSuccess("Staff member added.");
@@ -318,8 +321,7 @@ export default function ManagementStaffPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  Photo{" "}
-                  {!editingId && <span className="text-destructive">*</span>}
+                  Photo <span className="text-muted-foreground font-normal">(optional)</span>
                 </label>
                 <p className="text-xs text-muted-foreground">
                   Compressed to ≤{MAX_IMAGE_KB} KB and converted to WebP. Max display size 400 px.
