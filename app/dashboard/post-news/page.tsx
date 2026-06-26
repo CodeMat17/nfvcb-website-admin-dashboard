@@ -37,6 +37,10 @@ import TiptapLink from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import imageCompression from "browser-image-compression";
 import DOMPurify from "dompurify";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -51,6 +55,7 @@ type NewsDoc = {
   category?: string;
   author?: string;
   featured?: boolean;
+  publishedAt?: string;
 };
 
 const ALLOWED_CATEGORIES = ["news", "press-release", "announcement"] as const;
@@ -304,11 +309,16 @@ function EditorToolbar({ editor }: { editor: TiptapEditor }) {
 
 // ─── Empty form state ─────────────────────────────────────────────────────────
 
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 const EMPTY_FORM = {
   title: "",
   category: "news" as string,
   author: "",
   featured: false,
+  publishedAt: todayIso(),
 };
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -327,6 +337,7 @@ export default function PostNewsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<Id<"news"> | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -416,6 +427,7 @@ export default function PostNewsPage() {
       category: item.category ?? "news",
       author: item.author ?? "",
       featured: item.featured ?? false,
+      publishedAt: item.publishedAt ?? todayIso(),
     });
     editor?.commands.setContent(item.body ?? "");
     setImageFile(null);
@@ -496,6 +508,7 @@ export default function PostNewsPage() {
         category: form.category || undefined,
         author: author || undefined,
         featured: form.featured || undefined,
+        publishedAt: form.publishedAt || undefined,
         ...(coverImageId ? { coverImageId } : {}),
         ...(clearExistingImage && !coverImageId ? { clearCoverImage: true as const } : {}),
       };
@@ -647,6 +660,36 @@ export default function PostNewsPage() {
                     <span className="text-sm font-medium">Featured article</span>
                   </label>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Published Date</label>
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 h-8 px-2.5 rounded-lg border border-border bg-background text-sm font-normal hover:bg-muted transition-colors w-full sm:w-64 text-left"
+                    >
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                      {form.publishedAt
+                        ? format(new Date(form.publishedAt + "T00:00:00"), "PPP")
+                        : "Pick a date"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={form.publishedAt ? new Date(form.publishedAt + "T00:00:00") : undefined}
+                      onSelect={(date) => {
+                        setForm((f) => ({
+                          ...f,
+                          publishedAt: date ? format(date, "yyyy-MM-dd") : todayIso(),
+                        }));
+                        setCalendarOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">
@@ -806,11 +849,12 @@ export default function PostNewsPage() {
                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                   {item.excerpt}
                 </p>
-                {item.author && (
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    by {item.author}
-                  </p>
-                )}
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {item.author && <>by {item.author} · </>}
+                  {item.publishedAt
+                    ? format(new Date(item.publishedAt + "T00:00:00"), "PPP")
+                    : "No publish date"}
+                </p>
               </div>
               <div className="flex gap-1 shrink-0">
                 <Button

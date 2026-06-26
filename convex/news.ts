@@ -116,6 +116,7 @@ export const create = mutation({
     category: v.optional(v.string()),
     author: v.optional(v.string()),
     featured: v.optional(v.boolean()),
+    publishedAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -155,6 +156,7 @@ export const create = mutation({
       category: args.category,
       author: args.author?.trim() || undefined,
       featured: args.featured,
+      publishedAt: args.publishedAt,
     });
   },
 });
@@ -169,6 +171,7 @@ export const update = mutation({
     category: v.optional(v.string()),
     author: v.optional(v.string()),
     featured: v.optional(v.boolean()),
+    publishedAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();

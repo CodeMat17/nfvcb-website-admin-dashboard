@@ -13,6 +13,7 @@ export default defineSchema({
     category: v.optional(v.string()),
     author: v.optional(v.string()),
     featured: v.optional(v.boolean()),
+    publishedAt: v.optional(v.string()),
   })
     .index("by_slug", ["slug"])
     .index("by_category", ["category"])

@@ -6,10 +6,12 @@
       "Bash(cat /c/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-projects-nfvcb-website-admin/dca5f3c0-356c-4409-90f0-50b1f39ba10a/tasks/bwzhnwipr.output)",
       "Read(//c/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-projects-nfvcb-website-admin/dca5f3c0-356c-4409-90f0-50b1f39ba10a/tasks/**)",
       "Bash(find /c/Users/USER/Documents/projects -type d -name \"admin\" -o -name \"dashboard\" 2>/dev/null | head -10)",
-      "Read(//c/Users/USER/Documents/projects/**)"
+      "Read(//c/Users/USER/Documents/projects/**)",
+      "PowerShell(cd \"c:\\\\Users\\\\USER\\\\Documents\\\\projects\\\\nfvcb-website-admin\"; echo \"N\" | npx shadcn@latest add calendar --overwrite 2>&1; echo \"EXIT:$LASTEXITCODE\")"
     ],
     "additionalDirectories": [
-      "C:\\Users\\USER\\Documents\\projects\\nfvcb\\convex"
+      "C:\\Users\\USER\\Documents\\projects\\nfvcb\\convex",
+      "C:\\Users\\USER\\Documents\\projects\\nfvcb\\app\\management"
     ]
   }
 }
