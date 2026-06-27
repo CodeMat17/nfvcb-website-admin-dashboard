@@ -29,7 +29,11 @@ export default defineSchema({
     designation: v.string(),
     imageId: v.optional(v.id("_storage")),
     order: v.number(),
-  }).index("by_order", ["order"]),
+    // Seniority rank: 1 = most senior. Lower numbers are listed first.
+    seniority: v.optional(v.number()),
+  })
+    .index("by_order", ["order"])
+    .index("by_seniority", ["seniority"]),
 
   // ─── Approved Movies ────────────────────────────────────────────────────────
   // Each "post" groups a monthly batch of approved films.

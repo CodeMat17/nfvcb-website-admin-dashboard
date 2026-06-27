@@ -34,6 +34,7 @@ type StaffDoc = {
   imageId?: Id<"_storage">;
   imageUrl: string | null;
   order: number;
+  seniority?: number;
 };
 
 function sanitizeText(value: string, maxLen: number): string {
@@ -44,7 +45,7 @@ function sanitizeText(value: string, maxLen: number): string {
     .slice(0, maxLen);
 }
 
-const EMPTY_FORM = { name: "", designation: "" };
+const EMPTY_FORM = { name: "", designation: "", seniority: "" };
 
 export default function ManagementStaffPage() {
   const staff = useQuery(api.managementStaff.list) as StaffDoc[] | undefined;
@@ -119,7 +120,11 @@ export default function ManagementStaffPage() {
 
   function startEdit(item: StaffDoc) {
     setEditingId(item._id);
-    setForm({ name: item.name, designation: item.designation });
+    setForm({
+      name: item.name,
+      designation: item.designation,
+      seniority: item.seniority != null ? String(item.seniority) : "",
+    });
     setImageFile(null);
     setImagePreview(item.imageUrl ?? null);
     setError(null);
@@ -143,6 +148,13 @@ export default function ManagementStaffPage() {
     if (!sanitizeText(form.name, MAX_NAME)) return "Name is required.";
     if (!sanitizeText(form.designation, MAX_DESIGNATION))
       return "Designation is required.";
+    const rank = Number(form.seniority);
+    if (
+      form.seniority.trim() === "" ||
+      !Number.isInteger(rank) ||
+      rank < 1
+    )
+      return "Seniority must be a whole number of 1 or greater.";
     return null;
   }
 
@@ -161,15 +173,17 @@ export default function ManagementStaffPage() {
     try {
       const name = sanitizeText(form.name, MAX_NAME);
       const designation = sanitizeText(form.designation, MAX_DESIGNATION);
+      const seniority = Number(form.seniority);
 
       if (editingId) {
         type UpdatePayload = {
           id: Id<"managementStaff">;
           name: string;
           designation: string;
+          seniority: number;
           imageId?: Id<"_storage">;
         };
-        const payload: UpdatePayload = { id: editingId, name, designation };
+        const payload: UpdatePayload = { id: editingId, name, designation, seniority };
 
         if (imageFile) {
           const uploadUrl = await generateUploadUrl();
@@ -204,6 +218,7 @@ export default function ManagementStaffPage() {
           designation,
           imageId: storageId,
           order: Date.now(),
+          seniority,
         });
         setSuccess("Staff member added.");
       }
@@ -317,6 +332,26 @@ export default function ManagementStaffPage() {
                     {form.designation.length}/{MAX_DESIGNATION}
                   </p>
                 </div>
+              </div>
+
+              <div className="space-y-1 sm:max-w-[12rem]">
+                <label className="text-sm font-medium">
+                  Seniority Rank <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  value={form.seniority}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, seniority: e.target.value }))
+                  }
+                  placeholder="e.g. 1"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  1 = most senior. Lower ranks are listed first.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -452,7 +487,14 @@ export default function ManagementStaffPage() {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">{item.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-sm">{item.name}</p>
+                  {item.seniority != null && (
+                    <span className="text-[10px] font-medium text-nfvcb-green bg-nfvcb-green/10 px-1.5 py-0.5 rounded shrink-0">
+                      Rank {item.seniority}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {item.designation}
                 </p>

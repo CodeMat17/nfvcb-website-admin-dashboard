@@ -15,6 +15,13 @@ function sanitizeField(value: string, maxLen: number, label: string): string {
   return clean;
 }
 
+function sanitizeSeniority(value: number): number {
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value < 1) {
+    throw new Error("Seniority must be a whole number of 1 or greater.");
+  }
+  return value;
+}
+
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
@@ -27,11 +34,15 @@ export const generateUploadUrl = mutation({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const staff = await ctx.db
-      .query("managementStaff")
-      .withIndex("by_order")
-      .order("desc")
-      .take(500);
+    const staff = await ctx.db.query("managementStaff").take(500);
+    // Most senior first (seniority 1 before 2…). Unranked staff fall to the
+    // bottom, with newest added first as a tiebreaker.
+    staff.sort((a, b) => {
+      const sa = a.seniority ?? Number.MAX_SAFE_INTEGER;
+      const sb = b.seniority ?? Number.MAX_SAFE_INTEGER;
+      if (sa !== sb) return sa - sb;
+      return b.order - a.order;
+    });
     return await Promise.all(
       staff.map(async (s) => ({
         ...s,
@@ -56,6 +67,7 @@ export const create = mutation({
     designation: v.string(),
     imageId: v.optional(v.id("_storage")),
     order: v.number(),
+    seniority: v.number(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -63,6 +75,7 @@ export const create = mutation({
 
     const name = sanitizeField(args.name, MAX_NAME, "Name");
     const designation = sanitizeField(args.designation, MAX_DESIGNATION, "Designation");
+    const seniority = sanitizeSeniority(args.seniority);
 
     if (args.imageId) {
       const meta = await ctx.db.system.get(args.imageId);
@@ -76,6 +89,7 @@ export const create = mutation({
       designation,
       imageId: args.imageId,
       order: args.order,
+      seniority,
     });
   },
 });
@@ -87,6 +101,7 @@ export const update = mutation({
     designation: v.optional(v.string()),
     imageId: v.optional(v.id("_storage")),
     order: v.optional(v.number()),
+    seniority: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -104,6 +119,8 @@ export const update = mutation({
       patch.designation = sanitizeField(fields.designation, MAX_DESIGNATION, "Designation");
     if (fields.order !== undefined)
       patch.order = fields.order;
+    if (fields.seniority !== undefined)
+      patch.seniority = sanitizeSeniority(fields.seniority);
 
     if (fields.imageId !== undefined) {
       const meta = await ctx.db.system.get(fields.imageId);
