@@ -331,6 +331,7 @@ export default function PostNewsPage() {
   const generateUploadUrl = useMutation(api.news.generateUploadUrl);
 
   const [form, setForm] = useState(EMPTY_FORM);
+
   const [editingId, setEditingId] = useState<Id<"news"> | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -674,15 +675,18 @@ export default function PostNewsPage() {
                             ? new Date(form.publishedAt + "T00:00:00")
                             : undefined
                         }
-                        onSelect={(date) => {
+                        onSelect={(d) => {
                           setForm((f) => ({
                             ...f,
-                            publishedAt: date
-                              ? format(date, "yyyy-MM-dd")
-                              : todayIso(),
+                            publishedAt: d
+                              ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+                              : f.publishedAt,
                           }));
                           setCalendarOpen(false);
                         }}
+                        captionLayout='dropdown'
+                        startMonth={new Date(2000, 0)}
+                        endMonth={new Date(2100, 11)}
                       />
                     </PopoverContent>
                   </Popover>
