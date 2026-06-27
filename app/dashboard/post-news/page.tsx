@@ -554,17 +554,17 @@ export default function PostNewsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 space-y-8">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <ArrowLeft className="h-4 w-4" />
+    <div className='max-w-4xl mx-auto px-4 py-12 space-y-8'>
+      <div className='flex items-center justify-between gap-4'>
+        <div className='flex items-center gap-3'>
+          <Link href='/dashboard'>
+            <Button variant='ghost' size='icon' className='h-8 w-8'>
+              <ArrowLeft className='h-4 w-4' />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">News Management</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+            <h1 className='text-2xl font-bold'>News Management</h1>
+            <p className='text-muted-foreground text-sm mt-0.5'>
               Create, edit, and delete news articles.
             </p>
           </div>
@@ -572,32 +572,31 @@ export default function PostNewsPage() {
         {!showForm && (
           <Button
             onClick={startCreate}
-            className="bg-nfvcb-green hover:bg-nfvcb-green/90 shrink-0"
-          >
-            <Plus className="h-4 w-4 mr-1.5" /> New Article
+            className='bg-nfvcb-green hover:bg-nfvcb-green/90 shrink-0'>
+            <Plus className='h-4 w-4 mr-1.5' /> New Article
           </Button>
         )}
       </div>
 
       {success && !showForm && (
-        <p className="text-sm text-nfvcb-green bg-nfvcb-green/10 px-3 py-2 rounded-md flex items-center gap-1.5">
-          <Check className="h-4 w-4" /> {success}
+        <p className='text-sm text-nfvcb-green bg-nfvcb-green/10 px-3 py-2 rounded-md flex items-center gap-1.5'>
+          <Check className='h-4 w-4' /> {success}
         </p>
       )}
 
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
+            <CardTitle className='text-base'>
               {editingId ? "Edit Article" : "New Article"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">
-                    Title <span className="text-destructive">*</span>
+            <form onSubmit={handleSubmit} className='space-y-5' noValidate>
+              <div className='grid sm:grid-cols-2 gap-4'>
+                <div className='space-y-1'>
+                  <label className='text-sm font-medium'>
+                    Title <span className='text-destructive'>*</span>
                   </label>
                   <Input
                     value={form.title}
@@ -607,15 +606,15 @@ export default function PostNewsPage() {
                         title: e.target.value.slice(0, MAX_TITLE),
                       }))
                     }
-                    placeholder="Article title"
+                    placeholder='Article title'
                     maxLength={MAX_TITLE}
                   />
-                  <p className="text-[11px] text-muted-foreground text-right">
+                  <p className='text-[11px] text-muted-foreground text-right'>
                     {form.title.length}/{MAX_TITLE}
                   </p>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Author</label>
+                <div className='space-y-1'>
+                  <label className='text-sm font-medium'>Author</label>
                   <Input
                     value={form.author}
                     onChange={(e) =>
@@ -624,178 +623,191 @@ export default function PostNewsPage() {
                         author: e.target.value.slice(0, MAX_AUTHOR),
                       }))
                     }
-                    placeholder="Author name"
+                    placeholder='Author name'
                     maxLength={MAX_AUTHOR}
                   />
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Category</label>
+              <div className='grid sm:grid-cols-3 gap-4'>
+                <div className='space-y-1'>
+                  <label className='text-sm font-medium'>Category</label>
                   <Select
                     value={form.category}
-                    onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
-                  >
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, category: v }))
+                    }>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="news">News</SelectItem>
-                      <SelectItem value="press-release">Press Release</SelectItem>
-                      <SelectItem value="announcement">Announcement</SelectItem>
+                      <SelectItem value='news'>News</SelectItem>
+                      <SelectItem value='press-release'>
+                        Press Release
+                      </SelectItem>
+                      <SelectItem value='announcement'>Announcement</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-end pb-1">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
+
+                <div className='flex flex-col'>
+                  <label className='text-sm font-medium'>Published Date</label>
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger>
+                      <button
+                        type='button'
+                        className='inline-flex items-center gap-2 h-8 px-2.5 rounded-lg border border-border bg-background text-sm font-normal hover:bg-muted transition-colors w-full  text-left'>
+                        <CalendarIcon className='h-4 w-4 text-muted-foreground shrink-0' />
+                        {form.publishedAt
+                          ? format(
+                              new Date(form.publishedAt + "T00:00:00"),
+                              "PPP",
+                            )
+                          : "Pick a date"}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className='w-auto p-0' align='start'>
+                      <Calendar
+                        mode='single'
+                        selected={
+                          form.publishedAt
+                            ? new Date(form.publishedAt + "T00:00:00")
+                            : undefined
+                        }
+                        onSelect={(date) => {
+                          setForm((f) => ({
+                            ...f,
+                            publishedAt: date
+                              ? format(date, "yyyy-MM-dd")
+                              : todayIso(),
+                          }));
+                          setCalendarOpen(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className='flex items-end pb-1'>
+                  <label className='flex items-center gap-2 cursor-pointer select-none'>
                     <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-nfvcb-green"
+                      type='checkbox'
+                      className='h-4 w-4 accent-nfvcb-green'
                       checked={form.featured}
                       onChange={(e) =>
                         setForm((f) => ({ ...f, featured: e.target.checked }))
                       }
                     />
-                    <span className="text-sm font-medium">Featured article</span>
+                    <span className='text-sm font-medium'>
+                      Featured article
+                    </span>
                   </label>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Published Date</label>
-                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                  <PopoverTrigger>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 h-8 px-2.5 rounded-lg border border-border bg-background text-sm font-normal hover:bg-muted transition-colors w-full sm:w-64 text-left"
-                    >
-                      <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                      {form.publishedAt
-                        ? format(new Date(form.publishedAt + "T00:00:00"), "PPP")
-                        : "Pick a date"}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={form.publishedAt ? new Date(form.publishedAt + "T00:00:00") : undefined}
-                      onSelect={(date) => {
-                        setForm((f) => ({
-                          ...f,
-                          publishedAt: date ? format(date, "yyyy-MM-dd") : todayIso(),
-                        }));
-                        setCalendarOpen(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Cover Image</label>
-                <p className="text-xs text-muted-foreground">
-                  Automatically compressed to ≤{MAX_IMAGE_KB} KB and converted to WebP.
+              <div className='space-y-2'>
+                <label className='text-sm font-medium'>Cover Image</label>
+                <p className='text-xs text-muted-foreground'>
+                  Automatically compressed to ≤{MAX_IMAGE_KB} KB and converted
+                  to WebP.
                 </p>
 
                 {(imagePreview || existingImageId) && !clearExistingImage && (
-                  <div className="relative w-full max-h-52 overflow-hidden rounded-md border bg-muted">
+                  <div className='relative w-full max-h-52 overflow-hidden rounded-md border bg-muted'>
                     <Image
                       src={imagePreview ?? ""}
-                      alt="Cover preview"
+                      alt='Cover preview'
                       fill
                       unoptimized
-                      className="object-cover"
+                      className='object-cover'
                     />
                     <button
-                      type="button"
+                      type='button'
                       onClick={removeImage}
-                      className="absolute top-2 right-2 bg-background/80 rounded-full p-0.5 hover:bg-destructive hover:text-white transition-colors"
-                      title="Remove image"
-                    >
-                      <XCircle className="h-5 w-5" />
+                      className='absolute top-2 right-2 bg-background/80 rounded-full p-0.5 hover:bg-destructive hover:text-white transition-colors'
+                      title='Remove image'>
+                      <XCircle className='h-5 w-5' />
                     </button>
                   </div>
                 )}
 
-                <div className="flex items-center gap-2">
+                <div className='flex items-center gap-2'>
                   <input
                     ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
+                    type='file'
+                    accept='image/*'
+                    className='hidden'
                     onChange={handleImageChange}
-                    id="cover-image-input"
+                    id='cover-image-input'
                   />
                   <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
+                    type='button'
+                    variant='outline'
+                    size='sm'
                     disabled={imageCompressing}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
+                    onClick={() => fileInputRef.current?.click()}>
                     {imageCompressing ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                        <Loader2 className='h-4 w-4 mr-1.5 animate-spin' />
                         Compressing…
                       </>
                     ) : (
                       <>
-                        <ImagePlus className="h-4 w-4 mr-1.5" />
+                        <ImagePlus className='h-4 w-4 mr-1.5' />
                         {imagePreview ? "Change Image" : "Select Image"}
                       </>
                     )}
                   </Button>
                   {imageFile && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className='text-xs text-muted-foreground'>
                       {imageFile.name} ({(imageFile.size / 1024).toFixed(1)} KB)
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium">
-                  Body <span className="text-destructive">*</span>
+              <div className='space-y-1'>
+                <label className='text-sm font-medium'>
+                  Body <span className='text-destructive'>*</span>
                 </label>
-                <div className="border rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-ring">
+                <div className='border rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-ring'>
                   <EditorToolbar editor={editor} />
                   <EditorContent editor={editor} />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Supports bold, italic, headings, lists, links, and more via the toolbar.
+                <p className='text-xs text-muted-foreground'>
+                  Supports bold, italic, headings, lists, links, and more via
+                  the toolbar.
                 </p>
               </div>
 
               {error && (
-                <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
+                <p className='text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md'>
                   {error}
                 </p>
               )}
               {success && (
-                <p className="text-sm text-nfvcb-green bg-nfvcb-green/10 px-3 py-2 rounded-md flex items-center gap-1.5">
-                  <Check className="h-4 w-4" /> {success}
+                <p className='text-sm text-nfvcb-green bg-nfvcb-green/10 px-3 py-2 rounded-md flex items-center gap-1.5'>
+                  <Check className='h-4 w-4' /> {success}
                 </p>
               )}
 
-              <div className="flex gap-2 pt-1">
+              <div className='flex gap-2 pt-1'>
                 <Button
-                  type="submit"
+                  type='submit'
                   disabled={loading || imageCompressing}
-                  className="bg-nfvcb-green hover:bg-nfvcb-green/90"
-                >
+                  className='bg-nfvcb-green hover:bg-nfvcb-green/90'>
                   {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className='h-4 w-4 animate-spin' />
                   ) : editingId ? (
                     "Save Changes"
                   ) : (
                     <>
-                      <Plus className="h-4 w-4 mr-1" /> Create Article
+                      <Plus className='h-4 w-4 mr-1' /> Create Article
                     </>
                   )}
                 </Button>
-                <Button type="button" variant="outline" onClick={cancelForm}>
-                  <X className="h-4 w-4 mr-1" /> Cancel
+                <Button type='button' variant='outline' onClick={cancelForm}>
+                  <X className='h-4 w-4 mr-1' /> Cancel
                 </Button>
               </div>
             </form>
@@ -803,81 +815,78 @@ export default function PostNewsPage() {
         </Card>
       )}
 
-      <div className="space-y-3">
-        <h2 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
+      <div className='space-y-3'>
+        <h2 className='font-semibold text-sm uppercase tracking-wider text-muted-foreground'>
           All Articles ({items?.length ?? "…"})
         </h2>
 
         {items === undefined && (
-          <div className="py-10 flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div className='py-10 flex justify-center'>
+            <Loader2 className='h-6 w-6 animate-spin text-muted-foreground' />
           </div>
         )}
 
         {items?.map((item) => (
           <Card
             key={item._id}
-            className={editingId === item._id ? "border-nfvcb-green" : ""}
-          >
-            <CardContent className="flex items-start gap-4 py-4">
+            className={editingId === item._id ? "border-nfvcb-green" : ""}>
+            <CardContent className='flex items-start gap-4 py-4'>
               {item.coverImageUrl && (
                 <Image
                   src={item.coverImageUrl}
-                  alt=""
+                  alt=''
                   width={56}
                   height={56}
                   unoptimized
-                  className="w-14 h-14 rounded object-cover shrink-0 border"
+                  className='w-14 h-14 rounded object-cover shrink-0 border'
                 />
               )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-sm line-clamp-1">
+              <div className='flex-1 min-w-0'>
+                <div className='flex items-center gap-2 flex-wrap'>
+                  <span className='font-medium text-sm line-clamp-1'>
                     {item.title}
                   </span>
                   {item.featured && (
-                    <Badge className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/20">
+                    <Badge className='text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/20'>
                       Featured
                     </Badge>
                   )}
                   {item.category && (
-                    <Badge variant="outline" className="text-[10px]">
+                    <Badge variant='outline' className='text-[10px]'>
                       {item.category}
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                <p className='text-xs text-muted-foreground mt-0.5 line-clamp-1'>
                   {item.excerpt}
                 </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
+                <p className='text-[11px] text-muted-foreground mt-0.5'>
                   {item.author && <>by {item.author} · </>}
                   {item.publishedAt
                     ? format(new Date(item.publishedAt + "T00:00:00"), "PPP")
                     : "No publish date"}
                 </p>
               </div>
-              <div className="flex gap-1 shrink-0">
+              <div className='flex gap-1 shrink-0'>
                 <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
+                  size='icon'
+                  variant='ghost'
+                  className='h-8 w-8'
                   onClick={() => startEdit(item)}
-                  title="Edit article"
-                >
-                  <Pencil className="h-4 w-4" />
+                  title='Edit article'>
+                  <Pencil className='h-4 w-4' />
                 </Button>
                 <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  size='icon'
+                  variant='ghost'
+                  className='h-8 w-8 text-destructive hover:text-destructive'
                   onClick={() => handleDelete(item._id)}
                   disabled={deletingId === item._id}
-                  title="Delete article"
-                >
+                  title='Delete article'>
                   {deletingId === item._id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className='h-4 w-4 animate-spin' />
                   ) : (
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className='h-4 w-4' />
                   )}
                 </Button>
               </div>
@@ -886,7 +895,7 @@ export default function PostNewsPage() {
         ))}
 
         {items?.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-10">
+          <p className='text-sm text-muted-foreground text-center py-10'>
             No articles yet. Click &quot;New Article&quot; to create one.
           </p>
         )}
