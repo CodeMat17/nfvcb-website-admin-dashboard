@@ -70,9 +70,36 @@ export const generateUploadUrl = mutation({
   },
 });
 
+// Public: only published articles.
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    const rows = (await ctx.db.query("news").order("desc").collect()).filter(
+      (row) => row.publish === true
+    );
+    return await Promise.all(
+      rows.map(async (row) => {
+        let coverImageUrl: string | null = row.coverImageUrl ?? null;
+        if (row.coverImageId) {
+          try {
+            coverImageUrl = await ctx.storage.getUrl(row.coverImageId);
+          } catch {
+            coverImageUrl = null;
+          }
+        }
+        return { ...row, coverImageUrl };
+      })
+    );
+  },
+});
+
+// Admin dashboard: every article, published or not.
+export const listAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) throw new Error("Not authenticated");
+
     const rows = await ctx.db.query("news").order("desc").collect();
     return await Promise.all(
       rows.map(async (row) => {
@@ -90,9 +117,34 @@ export const list = query({
   },
 });
 
+// Public: only published articles.
+export const getBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("news")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+    if (!row || row.publish !== true) return null;
+    let coverImageUrl: string | null = row.coverImageUrl ?? null;
+    if (row.coverImageId) {
+      try {
+        coverImageUrl = await ctx.storage.getUrl(row.coverImageId);
+      } catch {
+        coverImageUrl = null;
+      }
+    }
+    return { ...row, coverImageUrl };
+  },
+});
+
+// Admin: fetch any article by id, including drafts.
 export const getById = query({
   args: { id: v.id("news") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) throw new Error("Not authenticated");
+
     const row = await ctx.db.get(args.id);
     if (!row) return null;
     let coverImageUrl: string | null = row.coverImageUrl ?? null;
@@ -117,6 +169,7 @@ export const create = mutation({
     author: v.optional(v.string()),
     featured: v.optional(v.boolean()),
     publishedAt: v.optional(v.string()),
+    publish: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -157,6 +210,7 @@ export const create = mutation({
       author: args.author?.trim() || undefined,
       featured: args.featured,
       publishedAt: args.publishedAt,
+      publish: args.publish ?? false,
     });
   },
 });
@@ -172,6 +226,7 @@ export const update = mutation({
     author: v.optional(v.string()),
     featured: v.optional(v.boolean()),
     publishedAt: v.optional(v.string()),
+    publish: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -231,6 +286,19 @@ export const update = mutation({
     }
 
     await ctx.db.patch(id, patch);
+  },
+});
+
+export const togglePublish = mutation({
+  args: { id: v.id("news"), publish: v.boolean() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) throw new Error("Not authenticated");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("News article not found.");
+
+    await ctx.db.patch(args.id, { publish: args.publish });
   },
 });
 

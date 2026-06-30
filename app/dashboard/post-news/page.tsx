@@ -25,6 +25,8 @@ import {
   ArrowLeft,
   ImagePlus,
   XCircle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -56,6 +58,7 @@ type NewsDoc = {
   author?: string;
   featured?: boolean;
   publishedAt?: string;
+  publish?: boolean;
 };
 
 const ALLOWED_CATEGORIES = ["news", "press-release", "announcement"] as const;
@@ -319,15 +322,18 @@ const EMPTY_FORM = {
   author: "",
   featured: false,
   publishedAt: todayIso(),
+  publish: false,
 };
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function PostNewsPage() {
-  const items = useQuery(api.news.list) as NewsDoc[] | undefined;
+  const items = useQuery(api.news.listAll) as NewsDoc[] | undefined;
   const createNews = useMutation(api.news.create);
   const updateNews = useMutation(api.news.update);
+  const togglePublish = useMutation(api.news.togglePublish);
   const removeNews = useMutation(api.news.remove);
+  const [togglingId, setTogglingId] = useState<Id<"news"> | null>(null);
   const generateUploadUrl = useMutation(api.news.generateUploadUrl);
 
   const [form, setForm] = useState(EMPTY_FORM);
@@ -429,6 +435,7 @@ export default function PostNewsPage() {
       author: item.author ?? "",
       featured: item.featured ?? false,
       publishedAt: item.publishedAt ?? todayIso(),
+      publish: item.publish ?? false,
     });
     editor?.commands.setContent(item.body ?? "");
     setImageFile(null);
@@ -510,6 +517,7 @@ export default function PostNewsPage() {
         author: author || undefined,
         featured: form.featured || undefined,
         publishedAt: form.publishedAt || undefined,
+        publish: form.publish,
         ...(coverImageId ? { coverImageId } : {}),
         ...(clearExistingImage && !coverImageId ? { clearCoverImage: true as const } : {}),
       };
@@ -535,6 +543,18 @@ export default function PostNewsPage() {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleTogglePublish(item: NewsDoc) {
+    setTogglingId(item._id);
+    setError(null);
+    try {
+      await togglePublish({ id: item._id, publish: !item.publish });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update publish status.");
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -692,7 +712,7 @@ export default function PostNewsPage() {
                   </Popover>
                 </div>
 
-                <div className='flex items-end pb-1'>
+                <div className='flex items-end pb-1 gap-4'>
                   <label className='flex items-center gap-2 cursor-pointer select-none'>
                     <input
                       type='checkbox'
@@ -705,6 +725,17 @@ export default function PostNewsPage() {
                     <span className='text-sm font-medium'>
                       Featured article
                     </span>
+                  </label>
+                  <label className='flex items-center gap-2 cursor-pointer select-none'>
+                    <input
+                      type='checkbox'
+                      className='h-4 w-4 accent-nfvcb-green'
+                      checked={form.publish}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, publish: e.target.checked }))
+                      }
+                    />
+                    <span className='text-sm font-medium'>Publish</span>
                   </label>
                 </div>
               </div>
@@ -855,6 +886,15 @@ export default function PostNewsPage() {
                       Featured
                     </Badge>
                   )}
+                  {item.publish ? (
+                    <Badge className='text-[10px] bg-nfvcb-green/10 text-nfvcb-green border-nfvcb-green/20'>
+                      Published
+                    </Badge>
+                  ) : (
+                    <Badge variant='outline' className='text-[10px] text-muted-foreground'>
+                      Not Published
+                    </Badge>
+                  )}
                   {item.category && (
                     <Badge variant='outline' className='text-[10px]'>
                       {item.category}
@@ -872,6 +912,25 @@ export default function PostNewsPage() {
                 </p>
               </div>
               <div className='flex gap-1 shrink-0'>
+                <Button
+                  size='icon'
+                  variant='ghost'
+                  className={
+                    item.publish
+                      ? "h-8 w-8 text-nfvcb-green hover:text-nfvcb-green"
+                      : "h-8 w-8 text-muted-foreground"
+                  }
+                  onClick={() => handleTogglePublish(item)}
+                  disabled={togglingId === item._id}
+                  title={item.publish ? "Unpublish article" : "Publish article"}>
+                  {togglingId === item._id ? (
+                    <Loader2 className='h-4 w-4 animate-spin' />
+                  ) : item.publish ? (
+                    <Eye className='h-4 w-4' />
+                  ) : (
+                    <EyeOff className='h-4 w-4' />
+                  )}
+                </Button>
                 <Button
                   size='icon'
                   variant='ghost'

@@ -14,11 +14,21 @@
       "Bash(nslookup dashboard.nfvcb.gov.ng)",
       "Bash(nslookup nfvcb.gov.ng 8.8.8.8)",
       "Bash(nslookup dashboard.nfvcb.gov.ng 8.8.8.8)",
-      "Bash(node -e \"console.log\\(require\\('./node_modules/react-day-picker/package.json'\\).version\\)\")"
+      "Bash(node -e \"console.log\\(require\\('./node_modules/react-day-picker/package.json'\\).version\\)\")",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\USER\\\\Documents\\\\projects\\\\nfvcb\\\\convex\" | Select-Object Name; Get-ChildItem \"C:\\\\Users\\\\USER\\\\Documents\\\\projects\\\\nfvcb\\\\app\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object FullName)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\USER\\\\Documents\\\\projects\\\\nfvcb\\\\app\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object FullName)",
+      "Bash(grep -rl \"news\" convex/*.ts)",
+      "Bash(cat convex/news.ts)",
+      "Bash(npx tsc *)",
+      "Read(//c/Users/USER/Documents/projects/nfvcb/app/approved-movies/[slug]/**)",
+      "Bash(mkdir -p \"C:/Users/USER/Documents/projects/nfvcb-website-admin/app/dashboard/approved-movies/[postId]\")",
+      "Bash(cd \"C:/Users/USER/Documents/projects/nfvcb\" && npx convex codegen 2>&1 | tail -40)"
     ],
     "additionalDirectories": [
       "C:\\Users\\USER\\Documents\\projects\\nfvcb\\convex",
-      "C:\\Users\\USER\\Documents\\projects\\nfvcb\\app\\management"
+      "C:\\Users\\USER\\Documents\\projects\\nfvcb\\app\\management",
+      "C:\\Users\\USER\\Documents\\projects\\nfvcb-website-admin\\app\\dashboard\\approved-movies",
+      "C:\\Users\\USER\\Documents\\projects\\nfvcb\\app"
     ]
   }
 }
