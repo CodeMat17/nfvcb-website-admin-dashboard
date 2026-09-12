@@ -42,6 +42,22 @@ function sanitizeText(value: string, maxLen: number): string {
     .slice(0, maxLen);
 }
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** Parses a stored "MMMM yyyy" month string into a Date, or null. */
+function parseMonth(month: string): Date | null {
+  const m = month?.trim().match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (!m) return null;
+  const idx = MONTH_NAMES.findIndex(
+    (name) => name.toLowerCase() === m[1].toLowerCase()
+  );
+  if (idx === -1) return null;
+  return new Date(Number(m[2]), idx, 1);
+}
+
 export default function ApprovedMoviesDashboardPage() {
   const posts = useQuery(api.approvedMovies.listPosts) as PostDoc[] | undefined;
   const bulkImport = useMutation(api.approvedMovies.bulkImport);
@@ -62,6 +78,8 @@ export default function ApprovedMoviesDashboardPage() {
 
   const [editingId, setEditingId] = useState<Id<"approvedMovies"> | null>(null);
   const [editMonthDate, setEditMonthDate] = useState<Date | null>(null);
+  const [editAuthor, setEditAuthor] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<Id<"approvedMovies"> | null>(null);
 
   function resetUploadForm() {
@@ -88,12 +106,8 @@ export default function ApprovedMoviesDashboardPage() {
       const monthGuess = file.name.match(
         /(January|February|March|April|May|June|July|August|September|October|November|December)\D*(\d{4})/i
       );
-      const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December",
-      ];
       if (monthGuess && !monthDate) {
-        const idx = monthNames.findIndex(
+        const idx = MONTH_NAMES.findIndex(
           (m) => m.toLowerCase() === monthGuess[1].toLowerCase()
         );
         if (idx !== -1) setMonthDate(new Date(Number(monthGuess[2]), idx, 1));
@@ -139,8 +153,8 @@ export default function ApprovedMoviesDashboardPage() {
 
   function startEdit(post: PostDoc) {
     setEditingId(post._id);
-    const parsed = new Date(`1 ${post.month}`);
-    setEditMonthDate(isNaN(parsed.getTime()) ? null : parsed);
+    setEditMonthDate(parseMonth(post.month));
+    setEditAuthor(post.author ?? "");
     setError(null);
     setSuccess(null);
   }
@@ -148,19 +162,25 @@ export default function ApprovedMoviesDashboardPage() {
   function cancelEdit() {
     setEditingId(null);
     setEditMonthDate(null);
+    setEditAuthor("");
   }
 
   async function saveEdit(id: Id<"approvedMovies">) {
     if (!editMonthDate) return setError("Month is required.");
+    setSavingEdit(true);
+    setError(null);
     try {
       await updatePost({
         id,
         month: format(editMonthDate, "MMMM yyyy"),
+        author: sanitizeText(editAuthor, 100) || "FCC",
       });
       setSuccess("Post updated.");
       cancelEdit();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Update failed.");
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -205,6 +225,12 @@ export default function ApprovedMoviesDashboardPage() {
           </Button>
         )}
       </div>
+
+      {error && !showUpload && (
+        <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
+          {error}
+        </p>
+      )}
 
       {success && !showUpload && (
         <p className="text-sm text-nfvcb-green bg-nfvcb-green/10 px-3 py-2 rounded-md flex items-center gap-1.5">
@@ -314,13 +340,49 @@ export default function ApprovedMoviesDashboardPage() {
             <Card key={post._id} className={editingId === post._id ? "border-nfvcb-green" : ""}>
               <CardContent className="py-5 space-y-3">
                 {editingId === post._id ? (
-                  <div className="space-y-2">
-                    <MonthYearPicker value={editMonthDate} onChange={setEditMonthDate} />
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Edit batch
+                    </p>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-muted-foreground">
+                        Month <span className="text-destructive">*</span>
+                      </label>
+                      <MonthYearPicker value={editMonthDate} onChange={setEditMonthDate} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-muted-foreground">
+                        Published by
+                      </label>
+                      <Input
+                        value={editAuthor}
+                        onChange={(e) => setEditAuthor(e.target.value.slice(0, 100))}
+                        placeholder="FCC"
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Title and URL become{" "}
+                      <span className="font-medium">
+                        Approved Movies -{" "}
+                        {editMonthDate ? format(editMonthDate, "MMMM yyyy") : "…"}
+                      </span>
+                      . Edit the films themselves under &quot;View / edit films&quot;.
+                    </p>
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => saveEdit(post._id)} className="bg-nfvcb-green hover:bg-nfvcb-green/90">
-                        <Check className="h-3.5 w-3.5 mr-1" /> Save
+                      <Button
+                        size="sm"
+                        disabled={savingEdit}
+                        onClick={() => saveEdit(post._id)}
+                        className="bg-nfvcb-green hover:bg-nfvcb-green/90"
+                      >
+                        {savingEdit ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                        ) : (
+                          <Check className="h-3.5 w-3.5 mr-1" />
+                        )}
+                        Save
                       </Button>
-                      <Button size="sm" variant="outline" onClick={cancelEdit}>
+                      <Button size="sm" variant="outline" onClick={cancelEdit} disabled={savingEdit}>
                         <X className="h-3.5 w-3.5 mr-1" /> Cancel
                       </Button>
                     </div>

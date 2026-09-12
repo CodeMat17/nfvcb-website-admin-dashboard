@@ -27,18 +27,16 @@ export function MonthYearPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger>
-        <button
-          type="button"
-          className={cn(
-            "inline-flex items-center gap-2 h-8 px-2.5 rounded-lg border border-input bg-background text-sm font-normal hover:bg-muted transition-colors w-full text-left",
-            !value && "text-muted-foreground",
-            className
-          )}
-        >
-          <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-          {value ? format(value, "MMMM yyyy") : placeholder}
-        </button>
+      <PopoverTrigger
+        type="button"
+        className={cn(
+          "inline-flex items-center gap-2 h-8 px-2.5 rounded-lg border border-input bg-background text-sm font-normal hover:bg-muted transition-colors w-full text-left",
+          !value && "text-muted-foreground",
+          className
+        )}
+      >
+        <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+        {value ? format(value, "MMMM yyyy") : placeholder}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
