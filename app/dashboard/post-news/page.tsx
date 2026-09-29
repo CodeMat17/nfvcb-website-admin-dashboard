@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ import TiptapLink from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import imageCompression from "browser-image-compression";
 import DOMPurify from "dompurify";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -51,8 +52,8 @@ type NewsDoc = {
   title: string;
   slug: string;
   excerpt: string;
-  body: string;
   coverImageUrl?: string | null;
+  coverImagePublicId?: string;
   coverImageId?: Id<"_storage">;
   category?: string;
   author?: string;
@@ -128,6 +129,7 @@ function ToolbarButton({
 function EditorToolbar({ editor }: { editor: TiptapEditor }) {
   const inlineImageRef = useRef<HTMLInputElement>(null);
   const [insertingImage, setInsertingImage] = useState(false);
+  const signUpload = useAction(api.cloudinary.signUpload);
 
   if (!editor) return null;
 
@@ -163,14 +165,14 @@ function EditorToolbar({ editor }: { editor: TiptapEditor }) {
         fileType: "image/webp",
       });
 
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(compressed);
-      });
-
-      editor.chain().focus().setImage({ src: dataUrl }).run();
+      // Upload to Cloudinary and embed its URL, so the article body stays small.
+      const { url } = await uploadToCloudinary(
+        compressed,
+        await signUpload({ folder: "news" })
+      );
+      editor.chain().focus().setImage({ src: url }).run();
+    } catch {
+      window.alert("Image upload failed. Please try again.");
     } finally {
       setInsertingImage(false);
       if (inlineImageRef.current) inlineImageRef.current.value = "";
@@ -328,13 +330,14 @@ const EMPTY_FORM = {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function PostNewsPage() {
+  const convex = useConvex();
   const items = useQuery(api.news.listAll) as NewsDoc[] | undefined;
   const createNews = useMutation(api.news.create);
   const updateNews = useMutation(api.news.update);
   const togglePublish = useMutation(api.news.togglePublish);
   const removeNews = useMutation(api.news.remove);
   const [togglingId, setTogglingId] = useState<Id<"news"> | null>(null);
-  const generateUploadUrl = useMutation(api.news.generateUploadUrl);
+  const signUpload = useAction(api.cloudinary.signUpload);
 
   const [form, setForm] = useState(EMPTY_FORM);
 
@@ -349,7 +352,7 @@ export default function PostNewsPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageCompressing, setImageCompressing] = useState(false);
-  const [existingImageId, setExistingImageId] = useState<Id<"_storage"> | null>(null);
+  const [existingImageId, setExistingImageId] = useState<string | null>(null);
   const [clearExistingImage, setClearExistingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -427,7 +430,15 @@ export default function PostNewsPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function startEdit(item: NewsDoc) {
+  async function startEdit(item: NewsDoc) {
+    // Bodies aren't included in listAll (they can be large), so load on demand.
+    let body = "";
+    try {
+      body = (await convex.query(api.news.getById, { id: item._id }))?.body ?? "";
+    } catch {
+      setError("Could not load the article body. Please try again.");
+      return;
+    }
     setEditingId(item._id);
     setForm({
       title: item.title,
@@ -437,10 +448,10 @@ export default function PostNewsPage() {
       publishedAt: item.publishedAt ?? todayIso(),
       publish: item.publish ?? false,
     });
-    editor?.commands.setContent(item.body ?? "");
+    editor?.commands.setContent(body);
     setImageFile(null);
     setImagePreview(item.coverImageUrl ?? null);
-    setExistingImageId(item.coverImageId ?? null);
+    setExistingImageId(item.coverImagePublicId ?? item.coverImageId ?? null);
     setClearExistingImage(false);
     setError(null);
     setSuccess(null);
@@ -497,17 +508,13 @@ export default function PostNewsPage() {
       const rawBody = editor?.getHTML() ?? "";
       const body = sanitizeBody(rawBody);
 
-      let coverImageId: Id<"_storage"> | undefined;
+      let coverImagePublicId: string | undefined;
       if (imageFile) {
-        const uploadUrl = await generateUploadUrl();
-        const res = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": imageFile.type },
-          body: imageFile,
-        });
-        if (!res.ok) throw new Error("Image upload failed. Please try again.");
-        const { storageId } = await res.json();
-        coverImageId = storageId as Id<"_storage">;
+        const uploaded = await uploadToCloudinary(
+          imageFile,
+          await signUpload({ folder: "news" })
+        );
+        coverImagePublicId = uploaded.publicId;
       }
 
       const payload = {
@@ -518,8 +525,8 @@ export default function PostNewsPage() {
         featured: form.featured || undefined,
         publishedAt: form.publishedAt || undefined,
         publish: form.publish,
-        ...(coverImageId ? { coverImageId } : {}),
-        ...(clearExistingImage && !coverImageId ? { clearCoverImage: true as const } : {}),
+        ...(coverImagePublicId ? { coverImagePublicId } : {}),
+        ...(clearExistingImage && !coverImagePublicId ? { clearCoverImage: true as const } : {}),
       };
 
       if (editingId) {

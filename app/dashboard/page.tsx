@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Newspaper, Film, LayoutDashboard, Users } from "lucide-react";
+import { Newspaper, Film, LayoutDashboard, Users, Landmark, UserRound } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const sections = [
@@ -20,6 +20,18 @@ const sections = [
     icon: Users,
     label: "Management Staff",
     description: "Upload and manage management staff profiles.",
+  },
+  {
+    href: "/dashboard/leadership",
+    icon: Landmark,
+    label: "Supervisory Leadership",
+    description: "Federal Government leaders shown on the Management page.",
+  },
+  {
+    href: "/dashboard/executive-director",
+    icon: UserRound,
+    label: "Executive Director",
+    description: "Edit the Executive Director's profile.",
   },
 ];
 

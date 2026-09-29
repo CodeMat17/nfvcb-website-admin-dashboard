@@ -1,5 +1,12 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 
 function toSlug(title: string): string {
   return title
@@ -14,22 +21,143 @@ function titleFromMonth(month: string): string {
   return `Approved Movies - ${month}`;
 }
 
+// ─── Denormalised stats ──────────────────────────────────────────────────────
+// Each post stores its film count and per-rating counts so listings never
+// need to read every film.
+
+type RatingCount = { rating: string; count: number };
+
+function computeStats(items: { rating: string }[]) {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const rating = item.rating.trim();
+    if (rating) counts.set(rating, (counts.get(rating) ?? 0) + 1);
+  }
+  return {
+    movieCount: items.length,
+    ratingCounts: [...counts].map(([rating, count]) => ({ rating, count })),
+  };
+}
+
+async function readItems(ctx: QueryCtx, postId: Id<"approvedMovies">) {
+  return await ctx.db
+    .query("approvedMovieItems")
+    .withIndex("by_postId", (q) => q.eq("postId", postId))
+    .collect();
+}
+
+async function refreshPostStats(ctx: MutationCtx, postId: Id<"approvedMovies">) {
+  await ctx.db.patch(postId, computeStats(await readItems(ctx, postId)));
+}
+
+// Convex object keys can't be empty or start with "$" or "_".
+function toRecord(ratingCounts: RatingCount[]) {
+  const record: Record<string, number> = {};
+  for (const { rating, count } of ratingCounts) {
+    if (/^[^$_]/.test(rating)) record[rating] = count;
+  }
+  return record;
+}
+
+async function withStats(ctx: QueryCtx, post: Doc<"approvedMovies">) {
+  // Posts created before stats were stored fall back to counting items.
+  const stats =
+    post.movieCount !== undefined && post.ratingCounts !== undefined
+      ? { movieCount: post.movieCount, ratingCounts: post.ratingCounts }
+      : computeStats(await readItems(ctx, post._id));
+  return {
+    ...post,
+    movieCount: stats.movieCount,
+    count: stats.movieCount,
+    ratingCounts: toRecord(stats.ratingCounts),
+  };
+}
+
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
+// Posts newest first with film counts; reads no film rows once backfilled.
 export const listPosts = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const q = ctx.db.query("approvedMovies").order("desc");
+    const posts =
+      args.limit !== undefined
+        ? await q.take(Math.max(1, Math.min(args.limit, 100)))
+        : await q.collect();
+    return await Promise.all(posts.map((post) => withStats(ctx, post)));
+  },
+});
+
+export const allSlugs = query({
   args: {},
   handler: async (ctx) => {
-    const posts = await ctx.db.query("approvedMovies").order("desc").collect();
-    const counts = await Promise.all(
-      posts.map((post) =>
-        ctx.db
-          .query("approvedMovieItems")
-          .withIndex("by_postId", (q) => q.eq("postId", post._id))
-          .collect()
-          .then((items) => items.length)
-      )
-    );
-    return posts.map((post, i) => ({ ...post, movieCount: counts[i] }));
+    const posts = await ctx.db.query("approvedMovies").collect();
+    return posts.map((p) => p.slug);
+  },
+});
+
+// One post and its films, ordered.
+export const getPostWithItems = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const post = await ctx.db
+      .query("approvedMovies")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+    if (!post) return null;
+    const items = await readItems(ctx, post._id);
+    items.sort((a, b) => a.order - b.order);
+    return { post, items };
+  },
+});
+
+// The featured film from the most recent post that has one.
+export const featuredFilm = query({
+  args: {},
+  handler: async (ctx) => {
+    const featured = await ctx.db
+      .query("approvedMovieItems")
+      .withIndex("by_featured", (q) => q.eq("featured", true))
+      .take(100);
+    let best: { item: Doc<"approvedMovieItems">; post: Doc<"approvedMovies"> } | null =
+      null;
+    for (const item of featured) {
+      const post = await ctx.db.get(item.postId);
+      if (!post) continue;
+      if (
+        !best ||
+        post._creationTime > best.post._creationTime ||
+        (post._id === best.post._id && item.order < best.item.order)
+      ) {
+        best = { item, post };
+      }
+    }
+    if (!best) return null;
+    const { item, post } = best;
+    return {
+      post: {
+        slug: post.slug,
+        month: post.month,
+        date: post.date ?? new Date(post._creationTime).toISOString().slice(0, 10),
+      },
+      film: {
+        title: item.title,
+        month: post.month,
+        duration: item.duration,
+        producer: item.producer,
+        director: item.director,
+        majorCast: item.majorCast,
+        rating: item.rating,
+        previewLocation: item.previewLocation,
+        language: item.language,
+        consumerAdvice: item.consumerAdvice,
+        dateOfApproval: item.dateOfApproval,
+        productionCompany: item.productionCompany,
+        featured: item.featured,
+        trailerUrl: item.trailerUrl,
+        juryNote: item.juryNote,
+      },
+    };
   },
 });
 
@@ -98,6 +226,8 @@ async function postWithMovies(
   };
 }
 
+// Legacy: reads every film of every post. Kept only so already-deployed
+// frontends keep working; use listPosts / featuredFilm instead.
 export const listPostsWithMovies = query({
   args: {},
   handler: async (ctx) => {
@@ -146,6 +276,8 @@ export const createPost = mutation({
       month: args.month,
       author: args.author,
       date: args.date,
+      movieCount: 0,
+      ratingCounts: [],
     });
   },
 });
@@ -251,6 +383,7 @@ export const bulkImport = mutation({
       month: args.month,
       author: args.author,
       date: args.date,
+      ...computeStats(args.movies),
     });
 
     await Promise.all(
@@ -291,7 +424,9 @@ export const createItem = mutation({
     const post = await ctx.db.get(args.postId);
     if (!post) throw new Error("Approved movies post not found.");
 
-    return await ctx.db.insert("approvedMovieItems", { ...args });
+    const itemId = await ctx.db.insert("approvedMovieItems", { ...args });
+    await refreshPostStats(ctx, args.postId);
+    return itemId;
   },
 });
 
@@ -322,6 +457,9 @@ export const updateItem = mutation({
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Approved movie item not found.");
     await ctx.db.patch(id, fields);
+    if (fields.rating !== undefined && fields.rating !== existing.rating) {
+      await refreshPostStats(ctx, existing.postId);
+    }
   },
 });
 
@@ -334,5 +472,21 @@ export const removeItem = mutation({
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Approved movie item not found.");
     await ctx.db.delete(args.id);
+    await refreshPostStats(ctx, existing.postId);
+  },
+});
+
+// ─── Migration ───────────────────────────────────────────────────────────────
+// One-off: fills movieCount/ratingCounts on posts created before they were
+// stored. Run with: npx convex run approvedMovies:backfillPostStats
+export const backfillPostStats = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const posts = await ctx.db.query("approvedMovies").collect();
+    for (const post of posts) {
+      if (post.movieCount === undefined || post.ratingCounts === undefined) {
+        await refreshPostStats(ctx, post._id);
+      }
+    }
   },
 });

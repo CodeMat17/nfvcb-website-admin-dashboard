@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { deleteProfileImage, mediaFields } from "./lib/media";
 
 const MAX_NAME = 150;
 const MAX_DESIGNATION = 200;
-const MAX_IMAGE_BYTES = 30 * 1024; // 30 KB
 
 function sanitizeField(value: string, maxLen: number, label: string): string {
   const clean = value
@@ -22,15 +22,6 @@ function sanitizeSeniority(value: number): number {
   return value;
 }
 
-export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (identity === null) throw new Error("Not authenticated");
-    return ctx.storage.generateUploadUrl();
-  },
-});
-
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -46,7 +37,7 @@ export const list = query({
     return await Promise.all(
       staff.map(async (s) => ({
         ...s,
-        imageUrl: s.imageId ? await ctx.storage.getUrl(s.imageId) : null,
+        imageUrl: s.imageUrl ?? (s.imageId ? await ctx.storage.getUrl(s.imageId) : null),
       }))
     );
   },
@@ -57,7 +48,10 @@ export const getById = query({
   handler: async (ctx, args) => {
     const staff = await ctx.db.get(args.id);
     if (!staff) return null;
-    return { ...staff, imageUrl: staff.imageId ? await ctx.storage.getUrl(staff.imageId) : null };
+    return {
+      ...staff,
+      imageUrl: staff.imageUrl ?? (staff.imageId ? await ctx.storage.getUrl(staff.imageId) : null),
+    };
   },
 });
 
@@ -65,7 +59,8 @@ export const create = mutation({
   args: {
     name: v.string(),
     designation: v.string(),
-    imageId: v.optional(v.id("_storage")),
+    // Cloudinary public ID from an upload signed by cloudinary.signUpload.
+    imagePublicId: v.optional(v.string()),
     order: v.number(),
     seniority: v.number(),
   },
@@ -77,17 +72,13 @@ export const create = mutation({
     const designation = sanitizeField(args.designation, MAX_DESIGNATION, "Designation");
     const seniority = sanitizeSeniority(args.seniority);
 
-    if (args.imageId) {
-      const meta = await ctx.db.system.get(args.imageId);
-      if (!meta) throw new Error("Image not found in storage.");
-      if (meta.size > MAX_IMAGE_BYTES)
-        throw new Error("Image must be 300 KB or smaller.");
-    }
+    const image = args.imagePublicId ? mediaFields(args.imagePublicId, "staff") : undefined;
 
     return await ctx.db.insert("managementStaff", {
       name,
       designation,
-      imageId: args.imageId,
+      imageUrl: image?.url,
+      imagePublicId: image?.publicId,
       order: args.order,
       seniority,
     });
@@ -99,7 +90,8 @@ export const update = mutation({
     id: v.id("managementStaff"),
     name: v.optional(v.string()),
     designation: v.optional(v.string()),
-    imageId: v.optional(v.id("_storage")),
+    // Cloudinary public ID from an upload signed by cloudinary.signUpload.
+    imagePublicId: v.optional(v.string()),
     order: v.optional(v.number()),
     seniority: v.optional(v.number()),
   },
@@ -122,13 +114,12 @@ export const update = mutation({
     if (fields.seniority !== undefined)
       patch.seniority = sanitizeSeniority(fields.seniority);
 
-    if (fields.imageId !== undefined) {
-      const meta = await ctx.db.system.get(fields.imageId);
-      if (!meta) throw new Error("Image not found in storage.");
-      if (meta.size > MAX_IMAGE_BYTES)
-        throw new Error("Image must be 300 KB or smaller.");
-      if (existing.imageId) await ctx.storage.delete(existing.imageId);
-      patch.imageId = fields.imageId;
+    if (fields.imagePublicId !== undefined) {
+      const image = mediaFields(fields.imagePublicId, "staff");
+      if (image.publicId !== existing.imagePublicId) await deleteProfileImage(ctx, existing);
+      patch.imageUrl = image.url;
+      patch.imagePublicId = image.publicId;
+      patch.imageId = undefined;
     }
 
     await ctx.db.patch(id, patch);
@@ -143,7 +134,7 @@ export const remove = mutation({
 
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Staff member not found.");
-    if (existing.imageId) await ctx.storage.delete(existing.imageId);
+    await deleteProfileImage(ctx, existing);
     await ctx.db.delete(args.id);
   },
 });

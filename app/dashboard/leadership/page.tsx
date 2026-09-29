@@ -25,13 +25,15 @@ import Image from "next/image";
 import imageCompression from "browser-image-compression";
 
 const MAX_NAME = 150;
-const MAX_DESIGNATION = 200;
+const MAX_ROLE = 200;
+const MAX_OFFICE = 200;
 const MAX_IMAGE_KB = 30;
 
-type StaffDoc = {
-  _id: Id<"managementStaff">;
+type LeaderDoc = {
+  _id: Id<"leadership">;
   name: string;
-  designation: string;
+  role: string;
+  office: string;
   imageId?: Id<"_storage">;
   imageUrl: string | null;
   order: number;
@@ -46,22 +48,22 @@ function sanitizeText(value: string, maxLen: number): string {
     .slice(0, maxLen);
 }
 
-const EMPTY_FORM = { name: "", designation: "", seniority: "" };
+const EMPTY_FORM = { name: "", role: "", office: "", seniority: "" };
 
-export default function ManagementStaffPage() {
-  const staff = useQuery(api.managementStaff.list) as StaffDoc[] | undefined;
-  const createStaff = useMutation(api.managementStaff.create);
-  const updateStaff = useMutation(api.managementStaff.update);
-  const removeStaff = useMutation(api.managementStaff.remove);
+export default function LeadershipPage() {
+  const leaders = useQuery(api.leadership.list) as LeaderDoc[] | undefined;
+  const createLeader = useMutation(api.leadership.create);
+  const updateLeader = useMutation(api.leadership.update);
+  const removeLeader = useMutation(api.leadership.remove);
   const signUpload = useAction(api.cloudinary.signUpload);
 
   const [form, setForm] = useState(EMPTY_FORM);
-  const [editingId, setEditingId] = useState<Id<"managementStaff"> | null>(null);
+  const [editingId, setEditingId] = useState<Id<"leadership"> | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<Id<"managementStaff"> | null>(null);
+  const [deletingId, setDeletingId] = useState<Id<"leadership"> | null>(null);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -119,11 +121,12 @@ export default function ManagementStaffPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function startEdit(item: StaffDoc) {
+  function startEdit(item: LeaderDoc) {
     setEditingId(item._id);
     setForm({
       name: item.name,
-      designation: item.designation,
+      role: item.role,
+      office: item.office,
       seniority: item.seniority != null ? String(item.seniority) : "",
     });
     setImageFile(null);
@@ -147,8 +150,9 @@ export default function ManagementStaffPage() {
 
   function validateClient(): string | null {
     if (!sanitizeText(form.name, MAX_NAME)) return "Name is required.";
-    if (!sanitizeText(form.designation, MAX_DESIGNATION))
-      return "Designation is required.";
+    if (!sanitizeText(form.role, MAX_ROLE))
+      return "Role is required.";
+    if (!sanitizeText(form.office, MAX_OFFICE)) return "Office is required.";
     const rank = Number(form.seniority);
     if (
       form.seniority.trim() === "" ||
@@ -173,39 +177,42 @@ export default function ManagementStaffPage() {
 
     try {
       const name = sanitizeText(form.name, MAX_NAME);
-      const designation = sanitizeText(form.designation, MAX_DESIGNATION);
+      const role = sanitizeText(form.role, MAX_ROLE);
+      const office = sanitizeText(form.office, MAX_OFFICE);
       const seniority = Number(form.seniority);
 
       if (editingId) {
         type UpdatePayload = {
-          id: Id<"managementStaff">;
+          id: Id<"leadership">;
           name: string;
-          designation: string;
+          role: string;
+          office: string;
           seniority: number;
           imagePublicId?: string;
         };
-        const payload: UpdatePayload = { id: editingId, name, designation, seniority };
+        const payload: UpdatePayload = { id: editingId, name, role, office, seniority };
 
         if (imageFile) {
-          payload.imagePublicId = (await uploadToCloudinary(imageFile, await signUpload({ folder: "staff" }))).publicId;
+          payload.imagePublicId = (await uploadToCloudinary(imageFile, await signUpload({ folder: "leadership" }))).publicId;
         }
 
-        await updateStaff(payload);
-        setSuccess("Staff member updated.");
+        await updateLeader(payload);
+        setSuccess("Leader updated.");
       } else {
         let imagePublicId: string | undefined;
         if (imageFile) {
-          imagePublicId = (await uploadToCloudinary(imageFile, await signUpload({ folder: "staff" }))).publicId;
+          imagePublicId = (await uploadToCloudinary(imageFile, await signUpload({ folder: "leadership" }))).publicId;
         }
 
-        await createStaff({
+        await createLeader({
           name,
-          designation,
+          role,
+          office,
           imagePublicId,
           order: Date.now(),
           seniority,
         });
-        setSuccess("Staff member added.");
+        setSuccess("Leader added.");
       }
 
       setEditingId(null);
@@ -221,14 +228,14 @@ export default function ManagementStaffPage() {
     }
   }
 
-  async function handleDelete(id: Id<"managementStaff">) {
-    if (!window.confirm("Remove this staff member? This cannot be undone.")) return;
+  async function handleDelete(id: Id<"leadership">) {
+    if (!window.confirm("Remove this leader? This cannot be undone.")) return;
     setDeletingId(id);
     setError(null);
     setSuccess(null);
     try {
-      await removeStaff({ id });
-      setSuccess("Staff member removed.");
+      await removeLeader({ id });
+      setSuccess("Leader removed.");
       if (editingId === id) cancelForm();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Delete failed.");
@@ -247,9 +254,9 @@ export default function ManagementStaffPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Management Staff</h1>
+            <h1 className="text-2xl font-bold">Supervisory Leadership</h1>
             <p className="text-muted-foreground text-sm mt-0.5">
-              Add, edit, and remove management staff profiles.
+              Federal Government leaders shown above the Executive Director on the Management page.
             </p>
           </div>
         </div>
@@ -258,7 +265,7 @@ export default function ManagementStaffPage() {
             onClick={startCreate}
             className="bg-nfvcb-green hover:bg-nfvcb-green/90 shrink-0"
           >
-            <Plus className="h-4 w-4 mr-1.5" /> Add Staff
+            <Plus className="h-4 w-4 mr-1.5" /> Add Leader
           </Button>
         )}
       </div>
@@ -273,7 +280,7 @@ export default function ManagementStaffPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {editingId ? "Edit Staff Member" : "Add Staff Member"}
+              {editingId ? "Edit Leader" : "Add Leader"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -300,23 +307,43 @@ export default function ManagementStaffPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium">
-                    Designation <span className="text-destructive">*</span>
+                    Role <span className="text-destructive">*</span>
                   </label>
                   <Input
-                    value={form.designation}
+                    value={form.role}
                     onChange={(e) =>
                       setForm((f) => ({
                         ...f,
-                        designation: e.target.value.slice(0, MAX_DESIGNATION),
+                        role: e.target.value.slice(0, MAX_ROLE),
                       }))
                     }
-                    placeholder="e.g. Executive Director"
-                    maxLength={MAX_DESIGNATION}
+                    placeholder="e.g. Vice President"
+                    maxLength={MAX_ROLE}
                   />
                   <p className="text-[11px] text-muted-foreground text-right">
-                    {form.designation.length}/{MAX_DESIGNATION}
+                    {form.role.length}/{MAX_ROLE}
                   </p>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">
+                  Office <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  value={form.office}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      office: e.target.value.slice(0, MAX_OFFICE),
+                    }))
+                  }
+                  placeholder="e.g. Federal Republic of Nigeria"
+                  maxLength={MAX_OFFICE}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Shown as the small label above the name.
+                </p>
               </div>
 
               <div className="space-y-1 sm:max-w-[12rem]">
@@ -335,7 +362,7 @@ export default function ManagementStaffPage() {
                   placeholder="e.g. 1"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  1 = most senior. Lower ranks are listed first.
+                  1 = shown first.
                 </p>
               </div>
 
@@ -427,7 +454,7 @@ export default function ManagementStaffPage() {
                     "Save Changes"
                   ) : (
                     <>
-                      <Plus className="h-4 w-4 mr-1" /> Add Staff Member
+                      <Plus className="h-4 w-4 mr-1" /> Add Leader
                     </>
                   )}
                 </Button>
@@ -442,16 +469,16 @@ export default function ManagementStaffPage() {
 
       <div className="space-y-3">
         <h2 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
-          All Staff ({staff?.length ?? "…"})
+          All Leaders ({leaders?.length ?? "…"})
         </h2>
 
-        {staff === undefined && (
+        {leaders === undefined && (
           <div className="py-10 flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         )}
 
-        {staff?.map((item) => (
+        {leaders?.map((item) => (
           <Card
             key={item._id}
             className={editingId === item._id ? "border-nfvcb-green" : ""}
@@ -481,7 +508,7 @@ export default function ManagementStaffPage() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {item.designation}
+                  {item.role} · {item.office}
                 </p>
               </div>
               <div className="flex gap-1 shrink-0">
@@ -490,7 +517,7 @@ export default function ManagementStaffPage() {
                   variant="ghost"
                   className="h-8 w-8"
                   onClick={() => startEdit(item)}
-                  title="Edit staff member"
+                  title="Edit leader"
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -500,7 +527,7 @@ export default function ManagementStaffPage() {
                   className="h-8 w-8 text-destructive hover:text-destructive"
                   onClick={() => handleDelete(item._id)}
                   disabled={deletingId === item._id}
-                  title="Remove staff member"
+                  title="Remove leader"
                 >
                   {deletingId === item._id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -513,9 +540,9 @@ export default function ManagementStaffPage() {
           </Card>
         ))}
 
-        {staff?.length === 0 && (
+        {leaders?.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-10">
-            No staff members yet. Click &quot;Add Staff&quot; to add one.
+            No leaders yet. Click &quot;Add Leader&quot; to add one.
           </p>
         )}
       </div>

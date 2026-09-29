@@ -59,7 +59,7 @@ function parseMonth(month: string): Date | null {
 }
 
 export default function ApprovedMoviesDashboardPage() {
-  const posts = useQuery(api.approvedMovies.listPosts) as PostDoc[] | undefined;
+  const posts = useQuery(api.approvedMovies.listPosts, {}) as PostDoc[] | undefined;
   const bulkImport = useMutation(api.approvedMovies.bulkImport);
   const updatePost = useMutation(api.approvedMovies.updatePost);
   const removePost = useMutation(api.approvedMovies.removePost);
