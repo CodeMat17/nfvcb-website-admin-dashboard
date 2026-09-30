@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
+import { NfvcbPickPanel } from "@/components/nfvcb-pick-panel";
 import {
   ArrowLeft,
   Check,
@@ -377,6 +378,10 @@ export default function ApprovedMoviesPostPage({
 
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">{error}</p>
+      )}
+
+      {items !== undefined && items.length > 0 && (
+        <NfvcbPickPanel postId={postId} films={items} />
       )}
 
       {showAdd && (

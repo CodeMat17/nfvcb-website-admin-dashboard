@@ -16,6 +16,7 @@ import type * as lib_media from "../lib/media.js";
 import type * as managementStaff from "../managementStaff.js";
 import type * as media from "../media.js";
 import type * as news from "../news.js";
+import type * as nfvcbPicks from "../nfvcbPicks.js";
 import type * as storage from "../storage.js";
 
 import type {
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   managementStaff: typeof managementStaff;
   media: typeof media;
   news: typeof news;
+  nfvcbPicks: typeof nfvcbPicks;
   storage: typeof storage;
 }>;
 

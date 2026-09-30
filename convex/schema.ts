@@ -141,4 +141,20 @@ export default defineSchema({
   })
     .index("by_postId", ["postId"])
     .index("by_featured", ["featured"]),
+
+  // ─── NFVCB Pick ─────────────────────────────────────────────────────────────
+  // One recommended film per monthly batch, shown on the homepage with its
+  // poster. Film details are read from the linked approvedMovieItems row.
+  nfvcbPicks: defineTable({
+    postId: v.id("approvedMovies"),
+    itemId: v.id("approvedMovieItems"),
+    // Cloudinary poster (portrait, ideally 2:3).
+    posterUrl: v.optional(v.string()),
+    posterPublicId: v.optional(v.string()),
+    // Why the Board recommends the film; shown as a pull quote.
+    note: v.optional(v.string()),
+    // Overrides the film's own trailerUrl when set.
+    trailerUrl: v.optional(v.string()),
+    published: v.boolean(),
+  }).index("by_postId", ["postId"]),
 });

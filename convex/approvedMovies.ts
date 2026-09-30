@@ -7,6 +7,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { removePick } from "./nfvcbPicks";
 
 function toSlug(title: string): string {
   return title
@@ -333,6 +334,12 @@ export const removePost = mutation({
       .collect();
     await Promise.all(items.map((item) => ctx.db.delete(item._id)));
 
+    const pick = await ctx.db
+      .query("nfvcbPicks")
+      .withIndex("by_postId", (q) => q.eq("postId", args.id))
+      .unique();
+    if (pick) await removePick(ctx, pick);
+
     await ctx.db.delete(args.id);
   },
 });
@@ -473,6 +480,13 @@ export const removeItem = mutation({
     if (!existing) throw new Error("Approved movie item not found.");
     await ctx.db.delete(args.id);
     await refreshPostStats(ctx, existing.postId);
+
+    // A pick can't outlive its film.
+    const pick = await ctx.db
+      .query("nfvcbPicks")
+      .withIndex("by_postId", (q) => q.eq("postId", existing.postId))
+      .unique();
+    if (pick?.itemId === args.id) await removePick(ctx, pick);
   },
 });
 
