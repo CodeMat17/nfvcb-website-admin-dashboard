@@ -157,4 +157,75 @@ export default defineSchema({
     trailerUrl: v.optional(v.string()),
     published: v.boolean(),
   }).index("by_postId", ["postId"]),
+
+  // ─── Events ─────────────────────────────────────────────────────────────────
+  // Board events such as the annual PAO-NDCRC. Each event has its own page on
+  // the public site with guests, a programme and a live-updates feed.
+  events: defineTable({
+    title: v.string(),
+    slug: v.string(),
+    // Long form of the title, e.g. what an acronym stands for.
+    fullName: v.optional(v.string()),
+    edition: v.optional(v.string()),
+    theme: v.optional(v.string()),
+    // Plain text; blank lines separate paragraphs.
+    description: v.optional(v.string()),
+    // YYYY-MM-DD, Lagos local dates.
+    startDate: v.string(),
+    endDate: v.string(),
+    venue: v.string(),
+    address: v.optional(v.string()),
+    registrationUrl: v.optional(v.string()),
+    // Cloudinary flyer / banner.
+    bannerUrl: v.optional(v.string()),
+    bannerPublicId: v.optional(v.string()),
+    bannerWidth: v.optional(v.number()),
+    bannerHeight: v.optional(v.number()),
+    published: v.boolean(),
+    // Promoted on the public homepage until the event ends.
+    featured: v.boolean(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_startDate", ["startDate"]),
+
+  // Special guests, speakers, panelists… each usually with a poster.
+  eventPeople: defineTable({
+    eventId: v.id("events"),
+    name: v.string(),
+    // One of EVENT_ROLES in convex/events.ts.
+    role: v.string(),
+    // Designation / organisation shown under the name.
+    title: v.optional(v.string()),
+    posterUrl: v.optional(v.string()),
+    posterPublicId: v.optional(v.string()),
+    posterWidth: v.optional(v.number()),
+    posterHeight: v.optional(v.number()),
+    order: v.number(),
+  }).index("by_eventId", ["eventId"]),
+
+  // Programme entries.
+  eventSessions: defineTable({
+    eventId: v.id("events"),
+    // YYYY-MM-DD
+    day: v.string(),
+    // HH:MM, 24-hour.
+    startTime: v.string(),
+    endTime: v.optional(v.string()),
+    title: v.string(),
+    description: v.optional(v.string()),
+    // Free text, e.g. "Moderator: …; Panel: …".
+    speakers: v.optional(v.string()),
+  }).index("by_eventId", ["eventId"]),
+
+  // Short posts shown as a live feed on the event page, newest first.
+  eventUpdates: defineTable({
+    eventId: v.id("events"),
+    title: v.optional(v.string()),
+    body: v.string(),
+    imageUrl: v.optional(v.string()),
+    imagePublicId: v.optional(v.string()),
+    imageWidth: v.optional(v.number()),
+    imageHeight: v.optional(v.number()),
+    postedAt: v.number(),
+  }).index("by_eventId_postedAt", ["eventId", "postedAt"]),
 });

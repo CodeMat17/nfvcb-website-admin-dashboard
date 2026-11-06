@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { mediaFields, publicIdsInHtml, type MediaFolder } from "./lib/media";
+import { notifySite } from "./lib/site";
 
 // ─── Migration support (used by cloudinary.migrate*) ─────────────────────────
 
@@ -42,6 +43,7 @@ export const applyMigratedImage = internalMutation({
     publicId: v.string(),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, args.table);
     if (args.table === "news") {
       const id = ctx.db.normalizeId("news", args.id);
       const row = id && (await ctx.db.get(id));
@@ -94,6 +96,7 @@ export const bodiesPage = internalQuery({
 export const setMigratedBody = internalMutation({
   args: { id: v.id("newsBodies"), body: v.string() },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "news");
     await ctx.db.patch(args.id, {
       body: args.body,
       mediaPublicIds: publicIdsInHtml(args.body),

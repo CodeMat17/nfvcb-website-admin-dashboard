@@ -213,7 +213,8 @@ export function NfvcbPickPanel({
 
               <div className="space-y-1">
                 <label htmlFor="pick-note" className="text-[11px] font-medium text-muted-foreground">
-                  Why the Board recommends it
+                  Why the Board recommends it{" "}
+                  <span className="font-normal">(max {NOTE_MAX} characters)</span>
                 </label>
                 <textarea
                   id="pick-note"

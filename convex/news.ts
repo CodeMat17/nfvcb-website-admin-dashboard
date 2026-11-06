@@ -9,6 +9,7 @@ import {
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { deleteMediaLater, mediaFields, publicIdsInHtml } from "./lib/media";
+import { notifySite } from "./lib/site";
 
 const MAX_TITLE = 200;
 const MAX_AUTHOR = 100;
@@ -217,6 +218,7 @@ export const create = mutation({
     publish: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "news");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -271,6 +273,7 @@ export const update = mutation({
     publish: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "news");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -332,6 +335,7 @@ export const update = mutation({
 export const togglePublish = mutation({
   args: { id: v.id("news"), publish: v.boolean() },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "news");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -345,6 +349,7 @@ export const togglePublish = mutation({
 export const remove = mutation({
   args: { id: v.id("news") },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "news");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -367,6 +372,7 @@ export const remove = mutation({
 export const migrateBodies = internalMutation({
   args: { cursor: v.optional(v.union(v.string(), v.null())) },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "news");
     const page = await ctx.db
       .query("news")
       .paginate({ cursor: args.cursor ?? null, numItems: 5 });

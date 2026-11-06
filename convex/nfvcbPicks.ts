@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { deleteMediaLater, mediaFields } from "./lib/media";
+import { notifySite } from "./lib/site";
 
 // ─── NFVCB Pick ──────────────────────────────────────────────────────────────
 // One recommended film per monthly approved-movies batch. The pick stores only
@@ -94,6 +95,7 @@ export const save = mutation({
     published: v.boolean(),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "nfvcbPicks");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -132,6 +134,7 @@ export const save = mutation({
 export const remove = mutation({
   args: { postId: v.id("approvedMovies") },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "nfvcbPicks");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 

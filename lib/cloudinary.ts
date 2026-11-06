@@ -10,7 +10,12 @@ export type SignedUpload = {
   signature: string;
 };
 
-export type UploadedImage = { publicId: string; url: string };
+export type UploadedImage = {
+  publicId: string;
+  url: string;
+  width?: number;
+  height?: number;
+};
 
 export async function uploadToCloudinary(
   file: Blob,
@@ -28,10 +33,12 @@ export async function uploadToCloudinary(
     { method: "POST", body: form }
   );
   if (!res.ok) throw new Error("Image upload failed. Please try again.");
-  const data = (await res.json()) as { public_id: string };
+  const data = (await res.json()) as { public_id: string; width?: number; height?: number };
 
   return {
     publicId: data.public_id,
+    width: data.width,
+    height: data.height,
     // Same delivery URL the backend stores (auto format + quality).
     url: `https://res.cloudinary.com/${signed.cloudName}/image/upload/f_auto,q_auto/${data.public_id}`,
   };

@@ -8,6 +8,7 @@ import {
 } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { removePick } from "./nfvcbPicks";
+import { notifySite } from "./lib/site";
 
 function toSlug(title: string): string {
   return title
@@ -258,6 +259,7 @@ export const createPost = mutation({
     date: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "approvedMovies");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -291,6 +293,7 @@ export const updatePost = mutation({
     date: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "approvedMovies");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -322,6 +325,7 @@ export const updatePost = mutation({
 export const removePost = mutation({
   args: { id: v.id("approvedMovies") },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "approvedMovies");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -368,6 +372,7 @@ export const bulkImport = mutation({
     movies: v.array(movieInput),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "approvedMovies");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
     if (args.movies.length === 0) throw new Error("No movies found to import.");
@@ -425,6 +430,7 @@ export const createItem = mutation({
     order: v.number(),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "approvedMovies");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -457,6 +463,7 @@ export const updateItem = mutation({
     order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "approvedMovies");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -473,6 +480,7 @@ export const updateItem = mutation({
 export const removeItem = mutation({
   args: { id: v.id("approvedMovieItems") },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "approvedMovies");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -496,6 +504,7 @@ export const removeItem = mutation({
 export const backfillPostStats = internalMutation({
   args: {},
   handler: async (ctx) => {
+    await notifySite(ctx, "approvedMovies");
     const posts = await ctx.db.query("approvedMovies").collect();
     for (const post of posts) {
       if (post.movieCount === undefined || post.ratingCounts === undefined) {

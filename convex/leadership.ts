@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { deleteProfileImage, mediaFields } from "./lib/media";
+import { notifySite } from "./lib/site";
 
 const MAX_NAME = 150;
 const MAX_ROLE = 200;
@@ -47,6 +48,7 @@ export const create = mutation({
     seniority: v.number(),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "leadership");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -77,6 +79,7 @@ export const update = mutation({
     seniority: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "leadership");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -107,6 +110,7 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("leadership") },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "leadership");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -124,6 +128,7 @@ export const remove = mutation({
 export const seed = internalMutation({
   args: {},
   handler: async (ctx) => {
+    await notifySite(ctx, "leadership");
     if (await ctx.db.query("leadership").first()) return "leadership already has rows; skipped.";
 
     const rows = [

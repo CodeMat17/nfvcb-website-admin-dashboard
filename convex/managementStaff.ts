@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { deleteProfileImage, mediaFields } from "./lib/media";
+import { notifySite } from "./lib/site";
 
 const MAX_NAME = 150;
 const MAX_DESIGNATION = 200;
@@ -65,6 +66,7 @@ export const create = mutation({
     seniority: v.number(),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "managementStaff");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -96,6 +98,7 @@ export const update = mutation({
     seniority: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "managementStaff");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -129,6 +132,7 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("managementStaff") },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "managementStaff");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 

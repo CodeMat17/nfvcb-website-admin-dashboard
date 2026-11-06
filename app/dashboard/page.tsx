@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Newspaper, Film, LayoutDashboard, Users, Landmark, UserRound } from "lucide-react";
+import { Newspaper, Film, LayoutDashboard, Users, Landmark, UserRound, CalendarDays } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const sections = [
@@ -8,6 +8,12 @@ const sections = [
     icon: Newspaper,
     label: "News",
     description: "Create, edit, and delete news articles.",
+  },
+  {
+    href: "/dashboard/events",
+    icon: CalendarDays,
+    label: "Events",
+    description: "Event pages: guests, programme and live updates.",
   },
   {
     href: "/dashboard/approved-movies",

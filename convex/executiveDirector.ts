@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { profileEntry } from "./schema";
 import { deleteProfileImage, mediaFields } from "./lib/media";
+import { notifySite } from "./lib/site";
 
 const MAX_SHORT = 200;
 const MAX_LONG = 5000;
@@ -90,6 +91,7 @@ export const save = mutation({
     imagePublicId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await notifySite(ctx, "executiveDirector");
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new Error("Not authenticated");
 
@@ -148,6 +150,7 @@ export const save = mutation({
 export const seed = internalMutation({
   args: {},
   handler: async (ctx) => {
+    await notifySite(ctx, "executiveDirector");
     if (await ctx.db.query("executiveDirector").first())
       return "executiveDirector already exists; skipped.";
 
