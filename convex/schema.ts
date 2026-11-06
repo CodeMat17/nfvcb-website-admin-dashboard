@@ -176,6 +176,8 @@ export default defineSchema({
     venue: v.string(),
     address: v.optional(v.string()),
     registrationUrl: v.optional(v.string()),
+    // YouTube link for a promo / highlights video (any youtube.com or youtu.be form).
+    videoUrl: v.optional(v.string()),
     // Cloudinary flyer / banner.
     bannerUrl: v.optional(v.string()),
     bannerPublicId: v.optional(v.string()),

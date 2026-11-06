@@ -78,6 +78,35 @@ function cleanUrl(value: string | undefined): string | undefined {
   return url;
 }
 
+/** 11-char YouTube video ID from any common link form, or null. */
+function youtubeId(url: string | undefined): string | null {
+  if (!url) return null;
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^(www|m|music)\./, "");
+  let id: string | null = null;
+  if (host === "youtu.be") id = u.pathname.split("/")[1] ?? null;
+  else if (host === "youtube.com" || host === "youtube-nocookie.com") {
+    id =
+      u.searchParams.get("v") ??
+      u.pathname.match(/^\/(?:embed|shorts|live|v)\/([^/]+)/)?.[1] ??
+      null;
+  }
+  return id && /^[\w-]{11}$/.test(id) ? id : null;
+}
+
+function cleanVideoUrl(value: string | undefined): string | undefined {
+  const url = cleanUrl(value);
+  if (url && !youtubeId(url)) {
+    throw new Error("Video link must be a YouTube video link, e.g. https://youtu.be/…");
+  }
+  return url;
+}
+
 function checkDate(value: string, label: string): string {
   if (!DATE_RE.test(value) || Number.isNaN(Date.parse(value))) {
     throw new Error(`${label} must be a valid date.`);
@@ -162,6 +191,7 @@ function publicEvent(e: Doc<"events">) {
     venue: e.venue,
     address: e.address ?? null,
     registrationUrl: e.registrationUrl ?? null,
+    youtubeId: youtubeId(e.videoUrl),
     bannerUrl: e.bannerUrl ?? null,
     bannerWidth: e.bannerWidth ?? null,
     bannerHeight: e.bannerHeight ?? null,
@@ -278,6 +308,7 @@ const eventFields = {
   venue: v.string(),
   address: v.optional(v.string()),
   registrationUrl: v.optional(v.string()),
+  videoUrl: v.optional(v.string()),
   published: v.boolean(),
   featured: v.boolean(),
 };
@@ -293,6 +324,7 @@ function cleanEvent(args: {
   venue: string;
   address?: string;
   registrationUrl?: string;
+  videoUrl?: string;
   published: boolean;
   featured: boolean;
 }) {
@@ -310,6 +342,7 @@ function cleanEvent(args: {
     venue: required(args.venue, LIMITS.venue, "Venue"),
     address: clean(args.address, LIMITS.address),
     registrationUrl: cleanUrl(args.registrationUrl),
+    videoUrl: cleanVideoUrl(args.videoUrl),
     published: args.published,
     featured: args.featured,
   };

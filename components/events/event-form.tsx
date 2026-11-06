@@ -27,6 +27,7 @@ type Form = {
   venue: string;
   address: string;
   registrationUrl: string;
+  videoUrl: string;
   published: boolean;
   featured: boolean;
 };
@@ -42,6 +43,7 @@ const EMPTY: Form = {
   venue: "",
   address: "",
   registrationUrl: "",
+  videoUrl: "",
   published: false,
   featured: true,
 };
@@ -58,6 +60,7 @@ function fromDoc(e: Doc<"events">): Form {
     venue: e.venue,
     address: e.address ?? "",
     registrationUrl: e.registrationUrl ?? "",
+    videoUrl: e.videoUrl ?? "",
     published: e.published,
     featured: e.featured,
   };
@@ -189,6 +192,19 @@ export function EventForm({
           maxLength={600}
           placeholder="https://"
           onChange={(e) => set("registrationUrl", e.target.value)}
+        />
+      </Field>
+
+      <Field
+        label="YouTube video link"
+        hint="Optional. Plays in the homepage event banner. Paste the link from YouTube's Share button."
+      >
+        <Input
+          type="url"
+          value={form.videoUrl}
+          maxLength={600}
+          placeholder="https://youtu.be/…"
+          onChange={(e) => set("videoUrl", e.target.value)}
         />
       </Field>
 
