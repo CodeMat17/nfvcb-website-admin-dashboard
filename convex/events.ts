@@ -19,6 +19,9 @@ export const EVENT_ROLES = [
   "Host",
 ] as const;
 
+/** Sponsor categories, in the order the public page lists them. */
+export const SPONSOR_KINDS = ["Sponsor", "Partner"] as const;
+
 const LIMITS = {
   title: 150,
   fullName: 250,
@@ -125,6 +128,11 @@ function checkRole(value: string): string {
   return value;
 }
 
+function checkKind(value: string): string {
+  if (!(SPONSOR_KINDS as readonly string[]).includes(value)) throw new Error("Unknown sponsor type.");
+  return value;
+}
+
 function toSlug(value: string): string {
   return value
     .toLowerCase()
@@ -150,9 +158,13 @@ async function slugTaken(ctx: { db: QueryCtx["db"] }, slug: string, except?: Id<
 }
 
 async function children(ctx: { db: QueryCtx["db"] }, eventId: Id<"events">) {
-  const [people, sessions, updates] = await Promise.all([
+  const [people, sponsors, sessions, updates] = await Promise.all([
     ctx.db
       .query("eventPeople")
+      .withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+      .take(300),
+    ctx.db
+      .query("eventSponsors")
       .withIndex("by_eventId", (q) => q.eq("eventId", eventId))
       .take(300),
     ctx.db
@@ -170,10 +182,15 @@ async function children(ctx: { db: QueryCtx["db"] }, eventId: Id<"events">) {
     return i === -1 ? EVENT_ROLES.length : i;
   };
   people.sort((a, b) => roleRank(a.role) - roleRank(b.role) || a.order - b.order);
+  const kindRank = (k: string) => {
+    const i = (SPONSOR_KINDS as readonly string[]).indexOf(k);
+    return i === -1 ? SPONSOR_KINDS.length : i;
+  };
+  sponsors.sort((a, b) => kindRank(a.kind) - kindRank(b.kind) || a.order - b.order);
   sessions.sort(
     (a, b) => a.day.localeCompare(b.day) || a.startTime.localeCompare(b.startTime)
   );
-  return { people, sessions, updates };
+  return { people, sponsors, sessions, updates };
 }
 
 /** Public shape of an event (drops Cloudinary IDs). */
@@ -241,7 +258,7 @@ export const getBySlug = query({
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
     if (!event?.published) return null;
-    const { people, sessions, updates } = await children(ctx, event._id);
+    const { people, sponsors, sessions, updates } = await children(ctx, event._id);
     return {
       event: publicEvent(event),
       people: people.map((p) => ({
@@ -252,6 +269,15 @@ export const getBySlug = query({
         posterUrl: p.posterUrl ?? null,
         posterWidth: p.posterWidth ?? null,
         posterHeight: p.posterHeight ?? null,
+      })),
+      sponsors: sponsors.map((s) => ({
+        _id: s._id,
+        name: s.name,
+        kind: s.kind,
+        websiteUrl: s.websiteUrl ?? null,
+        logoUrl: s.logoUrl ?? null,
+        logoWidth: s.logoWidth ?? null,
+        logoHeight: s.logoHeight ?? null,
       })),
       sessions: sessions.map((s) => ({
         _id: s._id,
@@ -434,13 +460,14 @@ export const remove = mutation({
     await requireAdmin(ctx);
     const event = await ctx.db.get(args.id);
     if (!event) return;
-    const { people, sessions, updates } = await children(ctx, event._id);
+    const { people, sponsors, sessions, updates } = await children(ctx, event._id);
     await deleteMediaLater(ctx, [
       event.bannerPublicId,
       ...people.map((p) => p.posterPublicId),
+      ...sponsors.map((s) => s.logoPublicId),
       ...updates.map((u) => u.imagePublicId),
     ]);
-    for (const row of [...people, ...sessions, ...updates]) await ctx.db.delete(row._id);
+    for (const row of [...people, ...sponsors, ...sessions, ...updates]) await ctx.db.delete(row._id);
     await ctx.db.delete(event._id);
   },
 });
@@ -542,6 +569,104 @@ export const removePerson = mutation({
     const person = await ctx.db.get(args.id);
     if (!person) return;
     await deleteMediaLater(ctx, [person.posterPublicId]);
+    await ctx.db.delete(args.id);
+  },
+});
+
+// ─── Sponsors & partners ─────────────────────────────────────────────────────
+
+export const saveSponsor = mutation({
+  args: {
+    eventId: v.id("events"),
+    // Omit to add a new sponsor.
+    id: v.optional(v.id("eventSponsors")),
+    name: v.string(),
+    kind: v.string(),
+    websiteUrl: v.optional(v.string()),
+    // New logo / photo; omit to keep the current one.
+    logo: v.optional(imageArg),
+    removeLogo: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    await notifySite(ctx, "events");
+    await requireAdmin(ctx);
+    await requireEvent(ctx, args.eventId);
+    const fields = {
+      name: required(args.name, LIMITS.name, "Name"),
+      kind: checkKind(args.kind),
+      websiteUrl: cleanUrl(args.websiteUrl),
+    };
+    const img = args.logo ? image(args.logo) : undefined;
+    const logoFields = img
+      ? {
+          logoUrl: img.url,
+          logoPublicId: img.publicId,
+          logoWidth: img.width,
+          logoHeight: img.height,
+        }
+      : {};
+
+    if (args.id) {
+      const existing = await ctx.db.get(args.id);
+      if (!existing || existing.eventId !== args.eventId) throw new Error("Sponsor not found.");
+      if ((img || args.removeLogo) && existing.logoPublicId !== img?.publicId) {
+        await deleteMediaLater(ctx, [existing.logoPublicId]);
+      }
+      await ctx.db.patch(args.id, {
+        ...fields,
+        ...(img
+          ? logoFields
+          : args.removeLogo
+            ? { logoUrl: undefined, logoPublicId: undefined, logoWidth: undefined, logoHeight: undefined }
+            : {}),
+      });
+      return args.id;
+    }
+    return await ctx.db.insert("eventSponsors", {
+      eventId: args.eventId,
+      ...fields,
+      ...logoFields,
+      order: Date.now(),
+    });
+  },
+});
+
+/** Swaps a sponsor's position with its neighbour of the same type. */
+export const moveSponsor = mutation({
+  args: { id: v.id("eventSponsors"), direction: v.union(v.literal("up"), v.literal("down")) },
+  handler: async (ctx, args) => {
+    await notifySite(ctx, "events");
+    await requireAdmin(ctx);
+    const sponsor = await ctx.db.get(args.id);
+    if (!sponsor) return;
+    const peers = (
+      await ctx.db
+        .query("eventSponsors")
+        .withIndex("by_eventId", (q) => q.eq("eventId", sponsor.eventId))
+        .take(300)
+    )
+      .filter((s) => s.kind === sponsor.kind)
+      .sort((a, b) => a.order - b.order);
+    const i = peers.findIndex((s) => s._id === sponsor._id);
+    const j = args.direction === "up" ? i - 1 : i + 1;
+    if (i === -1 || j < 0 || j >= peers.length) return;
+    const other = peers[j];
+    // Equal orders would make the swap a no-op, so nudge apart.
+    const a = sponsor.order;
+    const b = other.order === a ? a + (j > i ? 1 : -1) : other.order;
+    await ctx.db.patch(sponsor._id, { order: b });
+    await ctx.db.patch(other._id, { order: a });
+  },
+});
+
+export const removeSponsor = mutation({
+  args: { id: v.id("eventSponsors") },
+  handler: async (ctx, args) => {
+    await notifySite(ctx, "events");
+    await requireAdmin(ctx);
+    const sponsor = await ctx.db.get(args.id);
+    if (!sponsor) return;
+    await deleteMediaLater(ctx, [sponsor.logoPublicId]);
     await ctx.db.delete(args.id);
   },
 });

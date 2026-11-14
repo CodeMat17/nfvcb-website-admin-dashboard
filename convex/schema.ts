@@ -219,6 +219,20 @@ export default defineSchema({
     speakers: v.optional(v.string()),
   }).index("by_eventId", ["eventId"]),
 
+  // Sponsors and partners, each usually with a logo / photo.
+  eventSponsors: defineTable({
+    eventId: v.id("events"),
+    name: v.string(),
+    // One of SPONSOR_KINDS in convex/events.ts.
+    kind: v.string(),
+    websiteUrl: v.optional(v.string()),
+    logoUrl: v.optional(v.string()),
+    logoPublicId: v.optional(v.string()),
+    logoWidth: v.optional(v.number()),
+    logoHeight: v.optional(v.number()),
+    order: v.number(),
+  }).index("by_eventId", ["eventId"]),
+
   // Short posts shown as a live feed on the event page, newest first.
   eventUpdates: defineTable({
     eventId: v.id("events"),

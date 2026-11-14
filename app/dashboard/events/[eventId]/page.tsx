@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EventForm } from "@/components/events/event-form";
 import { GuestsPanel } from "@/components/events/guests-panel";
+import { SponsorsPanel } from "@/components/events/sponsors-panel";
 import { ProgrammePanel } from "@/components/events/programme-panel";
 import { UpdatesPanel } from "@/components/events/updates-panel";
 import { errorMessage } from "@/components/events/shared";
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.nfvcb.gov.ng";
 
-const TABS = ["Details", "Guests", "Programme", "Live updates"] as const;
+const TABS = ["Details", "Guests", "Sponsors & partners", "Programme", "Live updates"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function EventEditorPage({
@@ -51,10 +52,11 @@ export default function EventEditorPage({
     );
   }
 
-  const { event, people, sessions, updates } = data;
+  const { event, people, sponsors, sessions, updates } = data;
   const counts: Record<Tab, number | null> = {
     Details: null,
     Guests: people.length,
+    "Sponsors & partners": sponsors.length,
     Programme: sessions.length,
     "Live updates": updates.length,
   };
@@ -62,7 +64,7 @@ export default function EventEditorPage({
   async function handleDelete() {
     if (
       !window.confirm(
-        `Delete "${event.title}" with all its guests, programme and updates? This cannot be undone.`
+        `Delete "${event.title}" with all its guests, sponsors, programme and updates? This cannot be undone.`
       )
     )
       return;
@@ -138,6 +140,7 @@ export default function EventEditorPage({
         </>
       )}
       {tab === "Guests" && <GuestsPanel eventId={event._id} people={people} />}
+      {tab === "Sponsors & partners" && <SponsorsPanel eventId={event._id} sponsors={sponsors} />}
       {tab === "Programme" && <ProgrammePanel event={event} sessions={sessions} />}
       {tab === "Live updates" && <UpdatesPanel eventId={event._id} updates={updates} />}
     </div>

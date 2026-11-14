@@ -19,6 +19,8 @@ export const EVENT_ROLES = [
   "Host",
 ] as const;
 
+export const SPONSOR_KINDS = ["Sponsor", "Partner"] as const;
+
 export type ImageRef = { publicId: string; width?: number; height?: number };
 
 export const textareaClass =
